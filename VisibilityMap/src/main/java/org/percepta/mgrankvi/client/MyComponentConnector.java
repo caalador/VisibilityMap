@@ -47,27 +47,19 @@ public class MyComponentConnector extends AbstractComponentConnector {
 
 	}
 
-	// We must implement getWidget() to cast to correct type 
-	// (this will automatically create the correct widget type)
 	@Override
 	public MyComponentWidget getWidget() {
 		return (MyComponentWidget) super.getWidget();
 	}
 
-	// We must implement getState() to cast to correct type
 	@Override
 	public MyComponentState getState() {
 		return (MyComponentState) super.getState();
 	}
 
-	// Whenever the state changes in the server-side, this method is called
 	@Override
 	public void onStateChanged(StateChangeEvent stateChangeEvent) {
 		super.onStateChanged(stateChangeEvent);
-
-		// State is directly readable in the client after it is set in server
-//		final String text = getState().text;
-//		getWidget().setText(text);
 	}
 
 }
