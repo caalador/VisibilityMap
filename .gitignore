@@ -3,3 +3,6 @@ VisibilityMap-root.iml
 VisibilityMap.iml
 VisibilityMap-demo.iml
 styles.scss.cache
+VisibilityMap-demo/target
+VisibilityMap/target
+VisibilityMap-demo/src/main/webapp/VAADIN/widgetsets
