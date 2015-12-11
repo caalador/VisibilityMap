@@ -11,6 +11,8 @@ import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -108,44 +110,36 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
             double dy = Math.sin(angle);
             Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
 
-            intersectList.add(getClosestIntersectForRay(ray));
+            Intersect closestIntersectForRay = getClosestIntersectForRay(ray);
+            closestIntersectForRay.setAngle(angle);
+            intersectList.add(closestIntersectForRay);
         }
 
-//        // 50 rays
-//        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 50) {
-//            double dx = Math.cos(angle);
-//            double dy = Math.sin(angle);
-//            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
-//
-//            Intersect closest = null;
-//            // Closest intersection
-//            for (Line l : lines) {
-//                Intersect i = Calculations.getIntersection(ray, l);
-//                if (i == null) continue;
-//                if (closest == null || i.getT1() < closest.getT1()) {
-//                    closest = i;
-//                }
-//            }
-//            intersectList.add(closest);
-//        }
+        Collections.sort(intersectList, new Comparator<Intersect>() {
+            @Override
+            public int compare(Intersect o1, Intersect o2) {
+                return Double.compare(o1.getAngle(), o2.getAngle());
+            }
+        });
 
         // Area Polygon
 
-//        context.setFillStyle("#dd3838");
-//        context.beginPath();
-//        Iterator<Intersect> intersects = intersectList.iterator();
-//        Point intersectionPoint = intersects.next().getIntersectionPoint();
-//        context.moveTo(intersectionPoint.getX(), intersectionPoint.getY());
-//        while (intersects.hasNext()) {
-//            intersectionPoint = intersects.next().getIntersectionPoint();
-//            context.lineTo(intersectionPoint.getX(), intersectionPoint.getY());
-//        }
-//        context.closePath();
-//        context.fill();
+        context.setFillStyle("#dd3838");
+        context.beginPath();
+        Iterator<Intersect> intersects = intersectList.iterator();
+        Point intersectionPoint = intersects.next().getIntersectionPoint();
+        context.moveTo(intersectionPoint.getX(), intersectionPoint.getY());
+        while (intersects.hasNext()) {
+            intersectionPoint = intersects.next().getIntersectionPoint();
+            context.lineTo(intersectionPoint.getX(), intersectionPoint.getY());
+        }
+        context.closePath();
+        context.fill();
+
 
         // draw line
         context.setStrokeStyle("#f55");
-//        context.setFillStyle("#dd3838");
+        context.setFillStyle("#dd3838");
         for (Intersect intersect : intersectList) {
             Point intersection = intersect.getIntersectionPoint();
             context.beginPath();
