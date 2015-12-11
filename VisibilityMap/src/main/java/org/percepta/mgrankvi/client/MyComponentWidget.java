@@ -11,8 +11,11 @@ import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 // Extend any GWT Widget
 public class MyComponentWidget extends Composite implements MouseMoveHandler {
@@ -97,36 +100,54 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
             context.closePath();
             context.stroke();
         }
+        List<Double> angles = getUniqueAngles();
 
-        // from center to mouse
-//        Line ray = new Line(new Point(WIDTH / 2, HEIGHT / 2), new Point(x, y));
-
-        List<Intersect> intersectList = new LinkedList<Intersect>();
-        // 50 rays
-        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 50) {
+        LinkedList<Intersect> intersectList = new LinkedList<Intersect>();
+        for(Double angle : angles) {
             double dx = Math.cos(angle);
             double dy = Math.sin(angle);
-            Line ray = new Line(new Point(x,y), new Point(x+dx,y+dy));
+            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
 
-            Intersect closest = null;
-            // Closest intersection
-            for (Line l : lines) {
-                Intersect i = Calculations.getIntersection(ray, l);
-                if (i == null) continue;
-                if (closest == null || i.getT1() < closest.getT1()) {
-                    closest = i;
-                }
-            }
-            intersectList.add(closest);
+            intersectList.add(getClosestIntersectForRay(ray));
         }
+
+//        // 50 rays
+//        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 50) {
+//            double dx = Math.cos(angle);
+//            double dy = Math.sin(angle);
+//            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
 //
-//        Point intersection = closest.getIntersectionPoint();
+//            Intersect closest = null;
+//            // Closest intersection
+//            for (Line l : lines) {
+//                Intersect i = Calculations.getIntersection(ray, l);
+//                if (i == null) continue;
+//                if (closest == null || i.getT1() < closest.getT1()) {
+//                    closest = i;
+//                }
+//            }
+//            intersectList.add(closest);
+//        }
+
+        // Area Polygon
+
+//        context.setFillStyle("#dd3838");
+//        context.beginPath();
+//        Iterator<Intersect> intersects = intersectList.iterator();
+//        Point intersectionPoint = intersects.next().getIntersectionPoint();
+//        context.moveTo(intersectionPoint.getX(), intersectionPoint.getY());
+//        while (intersects.hasNext()) {
+//            intersectionPoint = intersects.next().getIntersectionPoint();
+//            context.lineTo(intersectionPoint.getX(), intersectionPoint.getY());
+//        }
+//        context.closePath();
+//        context.fill();
 
         // draw line
-        context.setStrokeStyle("#dd3838");
-        context.setFillStyle("#dd3838");
-        for(Intersect intersect : intersectList) {
-                    Point intersection = intersect.getIntersectionPoint();
+        context.setStrokeStyle("#f55");
+//        context.setFillStyle("#dd3838");
+        for (Intersect intersect : intersectList) {
+            Point intersection = intersect.getIntersectionPoint();
             context.beginPath();
             context.moveTo(x, y);
             context.lineTo(intersection.getX(), intersection.getY());
@@ -141,6 +162,25 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         }
     }
 
+    /**
+     * Find the closest intersecting segment for given ray.
+     *
+     * @param ray
+     * @return
+     */
+    private Intersect getClosestIntersectForRay(Line ray) {
+        Intersect closest = null;
+        // Closest intersection
+        for (Line l : lines) {
+            Intersect i = Calculations.getIntersection(ray, l);
+            if (i == null) continue;
+            if (closest == null || i.getT1() < closest.getT1()) {
+                closest = i;
+            }
+        }
+        return closest;
+    }
+
     protected void clearCanvas() {
         map.setCoordinateSpaceWidth(WIDTH);
         map.setCoordinateSpaceHeight(HEIGHT);
@@ -151,5 +191,25 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         x = event.getRelativeX(map.getElement());
         y = event.getRelativeY(map.getElement());
         paint();
+    }
+
+    public List<Double> getUniqueAngles() {
+        List<Double> angles = new LinkedList<Double>();
+
+        // Get all unique points
+        Set<Point> points = new HashSet<Point>();
+        for(Line line : lines) {
+            points.add(line.start);
+            points.add(line.end);
+        }
+
+        for(Point point: points) {
+            Double angle = Math.atan2(point.getY()-y, point.getX()-x);
+            angles.add(angle-0.00001);
+            angles.add(angle);
+            angles.add(angle+0.00001);
+        }
+
+        return angles;
     }
 }

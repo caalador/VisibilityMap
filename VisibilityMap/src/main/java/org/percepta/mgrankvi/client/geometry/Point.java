@@ -38,4 +38,18 @@ public class Point {
         setX(getX() + x);
         setY(getY() + y);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Point) {
+            Point other = (Point) obj;
+            return x == other.x && y == other.y;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
 }
