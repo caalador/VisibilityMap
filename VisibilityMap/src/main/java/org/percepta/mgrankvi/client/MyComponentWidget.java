@@ -99,34 +99,46 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         }
 
         // from center to mouse
-        Line ray = new Line(new Point(WIDTH/2,HEIGHT/2),new Point(x,y));
+//        Line ray = new Line(new Point(WIDTH / 2, HEIGHT / 2), new Point(x, y));
 
-        Intersect closest = null;
-        // Closest intersection
-        for(Line l: lines) {
-            Intersect i = Calculations.getIntersection(ray, l);
-            if(i == null) continue;
-            if(closest == null || i.getT1() < closest.getT1()) {
-                closest = i;
+        List<Intersect> intersectList = new LinkedList<Intersect>();
+        // 50 rays
+        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 50) {
+            double dx = Math.cos(angle);
+            double dy = Math.sin(angle);
+            Line ray = new Line(new Point(x,y), new Point(x+dx,y+dy));
+
+            Intersect closest = null;
+            // Closest intersection
+            for (Line l : lines) {
+                Intersect i = Calculations.getIntersection(ray, l);
+                if (i == null) continue;
+                if (closest == null || i.getT1() < closest.getT1()) {
+                    closest = i;
+                }
             }
+            intersectList.add(closest);
         }
-
-        Point intersection = closest.getIntersectionPoint();
+//
+//        Point intersection = closest.getIntersectionPoint();
 
         // draw line
         context.setStrokeStyle("#dd3838");
-        context.beginPath();
-        context.moveTo(WIDTH/2,HEIGHT/2);
-        context.lineTo(intersection.getX(), intersection.getY());
-        context.closePath();
-        context.stroke();
-
-        // mouse
         context.setFillStyle("#dd3838");
-        context.beginPath();
-        context.arc(intersection.getX(), intersection.getY(), 4, 0, 2 * Math.PI, false);
-        context.closePath();
-        context.fill();
+        for(Intersect intersect : intersectList) {
+                    Point intersection = intersect.getIntersectionPoint();
+            context.beginPath();
+            context.moveTo(x, y);
+            context.lineTo(intersection.getX(), intersection.getY());
+            context.closePath();
+            context.stroke();
+
+            // mouse
+            context.beginPath();
+            context.arc(intersection.getX(), intersection.getY(), 4, 0, 2 * Math.PI, false);
+            context.closePath();
+            context.fill();
+        }
     }
 
     protected void clearCanvas() {

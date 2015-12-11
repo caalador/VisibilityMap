@@ -21,10 +21,10 @@ public class Calculations {
         return new Intersect(new Point(r.pointX+r.directionX*t1, r.pointY+r.directionY*t1), t1);
     }
 
-    private static boolean areParallel(Parametric r, Parametric s) {
-        double r_mag = Math.sqrt(r.directionX * r.directionX + r.directionY * r.directionY);
-        double s_mag = Math.sqrt(s.directionX * s.directionX + s.directionY * s.directionY);
-        if (r.directionX / r_mag == s.directionX / s_mag && r.directionY / r_mag == s.directionY / s_mag) {
+    private static boolean areParallel(Parametric line1, Parametric line2) {
+        double r_mag = Math.sqrt(line1.directionX * line1.directionX + line1.directionY * line1.directionY);
+        double s_mag = Math.sqrt(line2.directionX * line2.directionX + line2.directionY * line2.directionY);
+        if (line1.directionX / r_mag == line2.directionX / s_mag && line1.directionY / r_mag == line2.directionY / s_mag) {
             return true;
         }
         return false;
