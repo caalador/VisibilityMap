@@ -4,6 +4,7 @@ import com.google.gwt.canvas.client.Canvas;
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.event.dom.client.MouseMoveEvent;
 import com.google.gwt.event.dom.client.MouseMoveHandler;
+import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
 import org.percepta.mgrankvi.client.geometry.Calculations;
@@ -13,10 +14,12 @@ import org.percepta.mgrankvi.client.geometry.Point;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 // Extend any GWT Widget
@@ -68,23 +71,38 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         add(new Line(new Point(480, 150), new Point(400, 95)));
     }};
 
-    int x = WIDTH/2;
-    int y = HEIGHT/2;
+    int x = WIDTH / 2;
+    int y = HEIGHT / 2;
 
     public MyComponentWidget() {
 
 
         SimplePanel baseContent = new SimplePanel();
+        AbsolutePanel absolute = new AbsolutePanel();
+        baseContent.add(absolute);
+
+        baseContent.getElement().getStyle().setBackgroundColor("green");
+        absolute.setWidth(WIDTH + "px");
+        absolute.setHeight(HEIGHT + "px");
 
         map = Canvas.createIfSupported();
         if (map != null) {
-            baseContent.add(map);
+            Canvas bg = Canvas.createIfSupported();
+            bg.setWidth(WIDTH + "px");
+            bg.setHeight(HEIGHT + "px");
+            bg.setCoordinateSpaceWidth(WIDTH);
+            bg.setCoordinateSpaceHeight(HEIGHT);
+            DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT);
+
 
             map.setWidth(WIDTH + "px");
             map.setHeight(HEIGHT + "px");
-map.getElement().getStyle().setBackgroundColor("#eee");
+
             map.addDomHandler(this, MouseMoveEvent.getType());
             paint();
+
+            absolute.add(bg, 0, 0);
+            absolute.add(map, 0, 0);
         }
         initWidget(baseContent);
     }
@@ -92,17 +110,6 @@ map.getElement().getStyle().setBackgroundColor("#eee");
     private void paint() {
         clearCanvas();
         Context2d context = map.getContext2d();
-
-        // Segment lines
-        context.setStrokeStyle("#999");
-        for (Line l : lines) {
-            context.beginPath();
-            context.moveTo(l.start.getX(), l.start.getY());
-            context.lineTo(l.end.getX(), l.end.getY());
-            context.closePath();
-            context.stroke();
-        }
-//        LinkedList<Intersect> intersectList = getSightPolygons(x, y);
 
         List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
 
@@ -112,10 +119,49 @@ map.getElement().getStyle().setBackgroundColor("#eee");
             double dy = Math.sin(angle) * fuzzyRadius;
             intersects.add(getSightPolygons(x + dx, y + dy));
         }
-        drawPolygon(context, getSightPolygons(x, y), "#fff");
-
-//        drawPolygon(context, intersectList);
+        drawPolygon(context, getSightPolygons(x, y), "rgba(255,255,255,0.2)");
         drawPolygons(context, intersects);
+
+        // Segment lines
+        context.setStrokeStyle("orange");
+        Map<String,List<Point>>lines = new HashMap<String, List<Point>>();
+        for(List<Intersect> is: intersects){
+        for(Intersect i : is) {
+            if(lines.containsKey(i.line.toString())){
+                lines.get(i.line.toString()).add(i.getIntersectionPoint());
+            } else {
+                List<Point> points = new LinkedList<Point>();
+                points.add(i.getIntersectionPoint());
+                lines.put(i.line.toString(), points);
+            }
+        }}
+        for(Map.Entry<String, List<Point>> entry: lines.entrySet()) {
+            context.save();
+            context.beginPath();
+            context.setLineWidth(2.0);
+            context.moveTo(entry.getValue().get(0).getX(), entry.getValue().get(0).getY());
+            for(Point p : entry.getValue()) {
+                context.lineTo(p.getX(),p.getY());
+            }
+            context.closePath();
+            context.stroke();
+            context.restore();
+        }
+
+        // Test having hidden points in map that only shown when "visible"
+        context.setGlobalCompositeOperation("source-atop");
+
+        context.setFillStyle("#000");
+        context.beginPath();
+        context.arc(50, 50, 2, 0, 2 * Math.PI, false);
+        context.closePath();
+        context.fill();
+
+        context.beginPath();
+        context.arc(450, 50, 2, 0, 2 * Math.PI, false);
+        context.closePath();
+        context.fill();
+        context.setGlobalCompositeOperation("source-over");
 
 //        // draw line
 //        context.setStrokeStyle("#f55");
@@ -134,7 +180,7 @@ map.getElement().getStyle().setBackgroundColor("#eee");
 //            context.closePath();
 //            context.fill();
 //        }
-        // Draw red dots
+        // Draw red dots for lines of sight.
         context.setFillStyle("#dd3838");
         context.beginPath();
         context.arc(x, y, 2, 0, 2 * Math.PI, false);
@@ -210,6 +256,7 @@ map.getElement().getStyle().setBackgroundColor("#eee");
             if (i == null) continue;
             if (closest == null || i.getT1() < closest.getT1()) {
                 closest = i;
+                closest.line = l;
             }
         }
         return closest;

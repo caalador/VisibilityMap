@@ -7,6 +7,7 @@ public class Intersect {
 
     Point intersectionPoint;
     Double t1, angle;
+public Line line;
 
     public Intersect(Point intersectionPoint, Double t1) {
         this.intersectionPoint = intersectionPoint;
