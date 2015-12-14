@@ -68,8 +68,8 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         add(new Line(new Point(480, 150), new Point(400, 95)));
     }};
 
-    int x = 0;
-    int y = 0;
+    int x = WIDTH/2;
+    int y = HEIGHT/2;
 
     public MyComponentWidget() {
 
@@ -82,7 +82,7 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
 
             map.setWidth(WIDTH + "px");
             map.setHeight(HEIGHT + "px");
-
+map.getElement().getStyle().setBackgroundColor("#eee");
             map.addDomHandler(this, MouseMoveEvent.getType());
             paint();
         }
@@ -102,29 +102,63 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
             context.closePath();
             context.stroke();
         }
-        List<Double> angles = getUniqueAngles();
+//        LinkedList<Intersect> intersectList = getSightPolygons(x, y);
 
-        LinkedList<Intersect> intersectList = new LinkedList<Intersect>();
-        for(Double angle : angles) {
-            double dx = Math.cos(angle);
-            double dy = Math.sin(angle);
-            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
+        List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
 
-            Intersect closestIntersectForRay = getClosestIntersectForRay(ray);
-            closestIntersectForRay.setAngle(angle);
-            intersectList.add(closestIntersectForRay);
+        int fuzzyRadius = 10;
+        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 10) {
+            double dx = Math.cos(angle) * fuzzyRadius;
+            double dy = Math.sin(angle) * fuzzyRadius;
+            intersects.add(getSightPolygons(x + dx, y + dy));
         }
+        drawPolygon(context, getSightPolygons(x, y), "#fff");
 
-        Collections.sort(intersectList, new Comparator<Intersect>() {
-            @Override
-            public int compare(Intersect o1, Intersect o2) {
-                return Double.compare(o1.getAngle(), o2.getAngle());
-            }
-        });
+//        drawPolygon(context, intersectList);
+        drawPolygons(context, intersects);
 
+//        // draw line
+//        context.setStrokeStyle("#f55");
+//        context.setFillStyle("#dd3838");
+//        for (Intersect intersect : intersectList) {
+//            Point intersection = intersect.getIntersectionPoint();
+//            context.beginPath();
+//            context.moveTo(x, y);
+//            context.lineTo(intersection.getX(), intersection.getY());
+//            context.closePath();
+//            context.stroke();
+//
+//            // mouse
+//            context.beginPath();
+//            context.arc(intersection.getX(), intersection.getY(), 4, 0, 2 * Math.PI, false);
+//            context.closePath();
+//            context.fill();
+//        }
+        // Draw red dots
+        context.setFillStyle("#dd3838");
+        context.beginPath();
+        context.arc(x, y, 2, 0, 2 * Math.PI, false);
+        context.fill();
+        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 10) {
+            double dx = Math.cos(angle) * fuzzyRadius;
+            double dy = Math.sin(angle) * fuzzyRadius;
+            context.beginPath();
+            context.arc(x + dx, y + dy, 2, 0, 2 * Math.PI, false);
+            context.closePath();
+            context.fill();
+        }
+    }
+
+    private void drawPolygons(Context2d context, List<List<Intersect>> intersects) {
+        for (List<Intersect> polygon : intersects) {
+            drawPolygon(context, polygon, "rgba(255,255,255,0.2)");
+        }
+    }
+
+    private void drawPolygon(Context2d context, List<Intersect> intersectList, String fillStyle) {
         // Area Polygon
 
-        context.setFillStyle("#dd3838");
+        context.setFillStyle(fillStyle);
         context.beginPath();
         Iterator<Intersect> intersects = intersectList.iterator();
         Point intersectionPoint = intersects.next().getIntersectionPoint();
@@ -135,25 +169,31 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         }
         context.closePath();
         context.fill();
+    }
 
+    private LinkedList<Intersect> getSightPolygons(double x, double y) {
+        List<Double> angles = getUniqueAngles(x, y);
 
-        // draw line
-        context.setStrokeStyle("#f55");
-        context.setFillStyle("#dd3838");
-        for (Intersect intersect : intersectList) {
-            Point intersection = intersect.getIntersectionPoint();
-            context.beginPath();
-            context.moveTo(x, y);
-            context.lineTo(intersection.getX(), intersection.getY());
-            context.closePath();
-            context.stroke();
+        LinkedList<Intersect> intersectList = new LinkedList<Intersect>();
+        for (Double angle : angles) {
+            double dx = Math.cos(angle);
+            double dy = Math.sin(angle);
+            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
 
-            // mouse
-            context.beginPath();
-            context.arc(intersection.getX(), intersection.getY(), 4, 0, 2 * Math.PI, false);
-            context.closePath();
-            context.fill();
+            Intersect closestIntersectForRay = getClosestIntersectForRay(ray);
+            if (closestIntersectForRay == null)
+                continue;
+            closestIntersectForRay.setAngle(angle);
+            intersectList.add(closestIntersectForRay);
         }
+
+        Collections.sort(intersectList, new Comparator<Intersect>() {
+            @Override
+            public int compare(Intersect o1, Intersect o2) {
+                return Double.compare(o1.getAngle(), o2.getAngle());
+            }
+        });
+        return intersectList;
     }
 
     /**
@@ -187,21 +227,21 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         paint();
     }
 
-    public List<Double> getUniqueAngles() {
+    public List<Double> getUniqueAngles(double x, double y) {
         List<Double> angles = new LinkedList<Double>();
 
         // Get all unique points
         Set<Point> points = new HashSet<Point>();
-        for(Line line : lines) {
+        for (Line line : lines) {
             points.add(line.start);
             points.add(line.end);
         }
 
-        for(Point point: points) {
-            Double angle = Math.atan2(point.getY()-y, point.getX()-x);
-            angles.add(angle-0.00001);
+        for (Point point : points) {
+            Double angle = Math.atan2(point.getY() - y, point.getX() - x);
+            angles.add(angle - 0.00001);
             angles.add(angle);
-            angles.add(angle+0.00001);
+            angles.add(angle + 0.00001);
         }
 
         return angles;
