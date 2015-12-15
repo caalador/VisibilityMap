@@ -1,5 +1,12 @@
 package org.percepta.mgrankvi.client.geometry;
 
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
@@ -51,5 +58,71 @@ public class Calculations {
             dx = line.end.getX() - line.start.getX();
             dy = line.end.getY() - line.start.getY();
         }
+    }
+
+    public static LinkedList<Intersect> getSightPolygons(double x, double y, List<Line> lines) {
+        List<Double> angles = getUniqueAngles(x, y, lines);
+
+        LinkedList<Intersect> intersectList = new LinkedList<Intersect>();
+        for (Double angle : angles) {
+            double dx = Math.cos(angle);
+            double dy = Math.sin(angle);
+            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
+
+            Intersect closestIntersectForRay = getClosestIntersectForRay(ray, lines);
+            if (closestIntersectForRay == null)
+                continue;
+            closestIntersectForRay.setAngle(angle);
+            intersectList.add(closestIntersectForRay);
+        }
+
+        Collections.sort(intersectList, new Comparator<Intersect>() {
+            @Override
+            public int compare(Intersect o1, Intersect o2) {
+                return Double.compare(o1.getAngle(), o2.getAngle());
+            }
+        });
+        return intersectList;
+    }
+
+
+    public static List<Double> getUniqueAngles(double x, double y, List<Line> lines) {
+        List<Double> angles = new LinkedList<Double>();
+
+        // Get all unique points
+        Set<Point> points = new HashSet<Point>();
+        for (Line line : lines) {
+            points.add(line.start);
+            points.add(line.end);
+        }
+
+        for (Point point : points) {
+            Double angle = Math.atan2(point.getY() - y, point.getX() - x);
+            angles.add(angle - 0.00001);
+            angles.add(angle);
+            angles.add(angle + 0.00001);
+        }
+
+        return angles;
+    }
+
+    /**
+     * Find the closest intersecting segment for given ray.
+     *
+     * @param ray
+     * @return
+     */
+    public static Intersect getClosestIntersectForRay(Line ray, List<Line> lines) {
+        Intersect closest = null;
+        // Closest intersection
+        for (Line l : lines) {
+            Intersect i = Calculations.getIntersection(ray, l);
+            if (i == null) continue;
+            if (closest == null || i.getT1() < closest.getT1()) {
+                closest = i;
+                closest.line = l;
+            }
+        }
+        return closest;
     }
 }

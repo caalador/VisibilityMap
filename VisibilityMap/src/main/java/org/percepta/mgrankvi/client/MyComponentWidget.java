@@ -1,34 +1,38 @@
 package org.percepta.mgrankvi.client;
 
 import com.google.gwt.canvas.client.Canvas;
+import com.google.gwt.canvas.dom.client.CanvasGradient;
 import com.google.gwt.canvas.dom.client.Context2d;
+import com.google.gwt.canvas.dom.client.FillStrokeStyle;
+import com.google.gwt.event.dom.client.KeyDownEvent;
+import com.google.gwt.event.dom.client.KeyDownHandler;
+import com.google.gwt.event.dom.client.KeyUpEvent;
+import com.google.gwt.event.dom.client.KeyUpHandler;
 import com.google.gwt.event.dom.client.MouseMoveEvent;
 import com.google.gwt.event.dom.client.MouseMoveHandler;
+import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
+import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
 import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 // Extend any GWT Widget
-public class MyComponentWidget extends Composite implements MouseMoveHandler {
+public class MyComponentWidget extends Composite implements MouseMoveHandler, KeyDownHandler, KeyUpHandler {
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
 
-    Canvas map;
+    Canvas map, bg;
 
     List<Line> lines = new LinkedList<Line>() {{
         // Border
@@ -69,6 +73,14 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         add(new Line(new Point(400, 95), new Point(580, 50)));
         add(new Line(new Point(580, 50), new Point(480, 150)));
         add(new Line(new Point(480, 150), new Point(400, 95)));
+
+        // DashLine
+        add(new Line(new Point(400, 200), new Point(400, 215)));
+        add(new Line(new Point(400, 220), new Point(400, 235)));
+        add(new Line(new Point(400, 240), new Point(400, 255)));
+        add(new Line(new Point(400, 260), new Point(400, 275)));
+        add(new Line(new Point(400, 280), new Point(400, 295)));
+        add(new Line(new Point(400, 300), new Point(400, 310)));
     }};
 
     int x = WIDTH / 2;
@@ -87,7 +99,7 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
 
         map = Canvas.createIfSupported();
         if (map != null) {
-            Canvas bg = Canvas.createIfSupported();
+            bg = Canvas.createIfSupported();
             bg.setWidth(WIDTH + "px");
             bg.setHeight(HEIGHT + "px");
             bg.setCoordinateSpaceWidth(WIDTH);
@@ -99,6 +111,8 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
             map.setHeight(HEIGHT + "px");
 
             map.addDomHandler(this, MouseMoveEvent.getType());
+            map.addDomHandler(this, KeyDownEvent.getType());
+            map.addDomHandler(this, KeyUpEvent.getType());
             paint();
 
             absolute.add(bg, 0, 0);
@@ -112,36 +126,43 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         Context2d context = map.getContext2d();
 
         List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
+        intersects.add(Calculations.getSightPolygons(x, y, lines));
 
-        int fuzzyRadius = 10;
-        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 10) {
+        int fuzzyRadius = 5;
+        int sightPoints = 10;
+        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
             double dx = Math.cos(angle) * fuzzyRadius;
             double dy = Math.sin(angle) * fuzzyRadius;
-            intersects.add(getSightPolygons(x + dx, y + dy));
+            intersects.add(Calculations.getSightPolygons(x + dx, y + dy, lines));
         }
-        drawPolygon(context, getSightPolygons(x, y), "rgba(255,255,255,0.2)");
+//        drawPolygon(context, Calculations.getSightPolygons(x, y, lines), "hsla(60, 75%, 60%, 0.2)");//"rgba(255,255,0,0.2)");
         drawPolygons(context, intersects);
 
         // Segment lines
         context.setStrokeStyle("orange");
-        Map<String,List<Point>>lines = new HashMap<String, List<Point>>();
-        for(List<Intersect> is: intersects){
-        for(Intersect i : is) {
-            if(lines.containsKey(i.line.toString())){
-                lines.get(i.line.toString()).add(i.getIntersectionPoint());
-            } else {
-                List<Point> points = new LinkedList<Point>();
-                points.add(i.getIntersectionPoint());
-                lines.put(i.line.toString(), points);
+        Map<String, LinkedList<Point>> lines = new HashMap<String, LinkedList<Point>>();
+        for (List<Intersect> is : intersects) {
+            for (Intersect i : is) {
+                Line line = i.line;
+                if (lines.containsKey(line.toString())) {
+                    lines.get(line.toString()).add(i.getIntersectionPoint());
+                } else {
+                    LinkedList<Point> points = new LinkedList<Point>();
+                    points.add(i.getIntersectionPoint());
+                    lines.put(line.toString(), points);
+                }
             }
-        }}
-        for(Map.Entry<String, List<Point>> entry: lines.entrySet()) {
+        }
+        for (Map.Entry<String, LinkedList<Point>> entry : lines.entrySet()) {
+            Iterator<Point> points = entry.getValue().iterator();
             context.save();
             context.beginPath();
             context.setLineWidth(2.0);
-            context.moveTo(entry.getValue().get(0).getX(), entry.getValue().get(0).getY());
-            for(Point p : entry.getValue()) {
-                context.lineTo(p.getX(),p.getY());
+            Point p = points.next();
+            context.moveTo(p.getX(), p.getY());
+            while (points.hasNext()) {
+                p = points.next();
+                context.lineTo(p.getX(), p.getY());
             }
             context.closePath();
             context.stroke();
@@ -149,8 +170,7 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         }
 
         // Test having hidden points in map that only shown when "visible"
-        context.setGlobalCompositeOperation("source-atop");
-
+        context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
         context.setFillStyle("#000");
         context.beginPath();
         context.arc(50, 50, 2, 0, 2 * Math.PI, false);
@@ -161,11 +181,11 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         context.arc(450, 50, 2, 0, 2 * Math.PI, false);
         context.closePath();
         context.fill();
-        context.setGlobalCompositeOperation("source-over");
 
-//        // draw line
+        // draw line
 //        context.setStrokeStyle("#f55");
 //        context.setFillStyle("#dd3838");
+//        for(List<Intersect> intersectList: intersects)
 //        for (Intersect intersect : intersectList) {
 //            Point intersection = intersect.getIntersectionPoint();
 //            context.beginPath();
@@ -185,7 +205,7 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         context.beginPath();
         context.arc(x, y, 2, 0, 2 * Math.PI, false);
         context.fill();
-        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / 10) {
+        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
             double dx = Math.cos(angle) * fuzzyRadius;
             double dy = Math.sin(angle) * fuzzyRadius;
             context.beginPath();
@@ -196,14 +216,18 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
     }
 
     private void drawPolygons(Context2d context, List<List<Intersect>> intersects) {
+        CanvasGradient radialGradient = context.createRadialGradient(x, y, 0, x, y, WIDTH * 0.75);
+        radialGradient.addColorStop(0.0, "hsla(60,100%,75%,0.05");
+        radialGradient.addColorStop(0.5, "hsla(60,50%,50%,0.03");
+        radialGradient.addColorStop(1.0, "hsla(60,60%,30%,0.01");
+
         for (List<Intersect> polygon : intersects) {
-            drawPolygon(context, polygon, "rgba(255,255,255,0.2)");
+            drawPolygon(context, polygon, radialGradient);
         }
     }
 
-    private void drawPolygon(Context2d context, List<Intersect> intersectList, String fillStyle) {
+    private void drawPolygon(Context2d context, List<Intersect> intersectList, FillStrokeStyle fillStyle) {
         // Area Polygon
-
         context.setFillStyle(fillStyle);
         context.beginPath();
         Iterator<Intersect> intersects = intersectList.iterator();
@@ -215,51 +239,6 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         }
         context.closePath();
         context.fill();
-    }
-
-    private LinkedList<Intersect> getSightPolygons(double x, double y) {
-        List<Double> angles = getUniqueAngles(x, y);
-
-        LinkedList<Intersect> intersectList = new LinkedList<Intersect>();
-        for (Double angle : angles) {
-            double dx = Math.cos(angle);
-            double dy = Math.sin(angle);
-            Line ray = new Line(new Point(x, y), new Point(x + dx, y + dy));
-
-            Intersect closestIntersectForRay = getClosestIntersectForRay(ray);
-            if (closestIntersectForRay == null)
-                continue;
-            closestIntersectForRay.setAngle(angle);
-            intersectList.add(closestIntersectForRay);
-        }
-
-        Collections.sort(intersectList, new Comparator<Intersect>() {
-            @Override
-            public int compare(Intersect o1, Intersect o2) {
-                return Double.compare(o1.getAngle(), o2.getAngle());
-            }
-        });
-        return intersectList;
-    }
-
-    /**
-     * Find the closest intersecting segment for given ray.
-     *
-     * @param ray
-     * @return
-     */
-    private Intersect getClosestIntersectForRay(Line ray) {
-        Intersect closest = null;
-        // Closest intersection
-        for (Line l : lines) {
-            Intersect i = Calculations.getIntersection(ray, l);
-            if (i == null) continue;
-            if (closest == null || i.getT1() < closest.getT1()) {
-                closest = i;
-                closest.line = l;
-            }
-        }
-        return closest;
     }
 
     protected void clearCanvas() {
@@ -274,23 +253,83 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler {
         paint();
     }
 
-    public List<Double> getUniqueAngles(double x, double y) {
-        List<Double> angles = new LinkedList<Double>();
+    Timer t;
 
-        // Get all unique points
-        Set<Point> points = new HashSet<Point>();
-        for (Line line : lines) {
-            points.add(line.start);
-            points.add(line.end);
+    public static final int SPEED = 3;
+    // x and y velocity
+    private int vX, vY;
+    private boolean up = false;
+    boolean down = false;
+    boolean left = false;
+    boolean right = false;
+
+
+    private void update() {
+        vX = 0;
+        vY = 0;
+        if (down) vY = SPEED;
+        if (up) vY = -SPEED;
+        if (left) vX = -SPEED;
+        if (right) vX = SPEED;
+        if(x+vX > 0 && x+vX < WIDTH) {
+            x += vX;
+        }
+        if(y+vY >0 && y+vY < HEIGHT) {
+            y += vY;
+        }
+        paint();
+    }
+
+    @Override
+    public void onKeyDown(KeyDownEvent event) {
+        if (t == null) {
+            t = new Timer() {
+
+                @Override
+                public void run() {
+                    update();
+                }
+            };
+            t.scheduleRepeating(10);
         }
 
-        for (Point point : points) {
-            Double angle = Math.atan2(point.getY() - y, point.getX() - x);
-            angles.add(angle - 0.00001);
-            angles.add(angle);
-            angles.add(angle + 0.00001);
+        switch (event.getNativeKeyCode()) {
+            case KeyboardEvent.KeyCode.DOWN:
+                down = true;
+                break;
+            case KeyboardEvent.KeyCode.UP:
+                up = true;
+                break;
+            case KeyboardEvent.KeyCode.LEFT:
+                left = true;
+                break;
+            case KeyboardEvent.KeyCode.RIGHT:
+                right = true;
+                break;
         }
+        update();
+    }
 
-        return angles;
+    @Override
+    public void onKeyUp(KeyUpEvent event) {
+
+        switch (event.getNativeKeyCode()) {
+            case KeyboardEvent.KeyCode.DOWN:
+                down = false;
+                break;
+            case KeyboardEvent.KeyCode.UP:
+                up = false;
+                break;
+            case KeyboardEvent.KeyCode.LEFT:
+                left = false;
+                break;
+            case KeyboardEvent.KeyCode.RIGHT:
+                right = false;
+                break;
+        }
+        if (t != null && !(down || up || left || right)) {
+            t.cancel();
+            t = null;
+        }
     }
 }
