@@ -3,7 +3,7 @@ package org.percepta.mgrankvi.client.geometry;
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
-public class Point {
+public class Point implements Comparable<Point> {
 
     private double x;
     private double y;
@@ -51,5 +51,14 @@ public class Point {
     @Override
     public int hashCode() {
         return super.hashCode();
+    }
+
+    @Override
+    public int compareTo(Point o) {
+        int x = Double.compare(getX(), o.getX());
+        if(x == 0) {
+            return Double.compare(getY(), o.getY());
+        }
+        return x;
     }
 }

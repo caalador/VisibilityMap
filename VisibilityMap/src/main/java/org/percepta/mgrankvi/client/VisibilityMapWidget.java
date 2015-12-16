@@ -14,11 +14,13 @@ import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
+import com.vaadin.client.VConsole;
 import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
 import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
+import org.percepta.mgrankvi.client.utils.DrawUtil;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,13 +28,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-// Extend any GWT Widget
-public class MyComponentWidget extends Composite implements MouseMoveHandler, KeyDownHandler, KeyUpHandler {
+public class VisibilityMapWidget extends Composite implements MouseMoveHandler, KeyDownHandler, KeyUpHandler {
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
 
+    private static final int DOT_RADIUS = 2;
+
     Canvas map, bg;
+    boolean multipoint = true;
+
+    int fuzzyRadius = 5;
+    int sightPoints = 10;
 
     List<Line> lines = new LinkedList<Line>() {{
         // Border
@@ -86,7 +93,7 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler, Ke
     int x = WIDTH / 2;
     int y = HEIGHT / 2;
 
-    public MyComponentWidget() {
+    public VisibilityMapWidget() {
 
 
         SimplePanel baseContent = new SimplePanel();
@@ -127,13 +134,12 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler, Ke
 
         List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
         intersects.add(Calculations.getSightPolygons(x, y, lines));
-
-        int fuzzyRadius = 5;
-        int sightPoints = 10;
-        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
-            double dx = Math.cos(angle) * fuzzyRadius;
-            double dy = Math.sin(angle) * fuzzyRadius;
-            intersects.add(Calculations.getSightPolygons(x + dx, y + dy, lines));
+        if (multipoint) {
+            for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
+                double dx = Math.cos(angle) * fuzzyRadius;
+                double dy = Math.sin(angle) * fuzzyRadius;
+                intersects.add(Calculations.getSightPolygons(x + dx, y + dy, lines));
+            }
         }
 //        drawPolygon(context, Calculations.getSightPolygons(x, y, lines), "hsla(60, 75%, 60%, 0.2)");//"rgba(255,255,0,0.2)");
         drawPolygons(context, intersects);
@@ -173,14 +179,16 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler, Ke
         context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
         context.setFillStyle("#000");
         context.beginPath();
-        context.arc(50, 50, 2, 0, 2 * Math.PI, false);
+        context.arc(50, 50, DOT_RADIUS, 0, 2 * Math.PI, false);
         context.closePath();
         context.fill();
 
         context.beginPath();
-        context.arc(450, 50, 2, 0, 2 * Math.PI, false);
+        context.arc(450, 50, DOT_RADIUS, 0, 2 * Math.PI, false);
         context.closePath();
         context.fill();
+
+        context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_OVER);
 
         // draw line
 //        context.setStrokeStyle("#f55");
@@ -203,15 +211,17 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler, Ke
         // Draw red dots for lines of sight.
         context.setFillStyle("#dd3838");
         context.beginPath();
-        context.arc(x, y, 2, 0, 2 * Math.PI, false);
+        context.arc(x, y, DOT_RADIUS, 0, 2 * Math.PI, false);
         context.fill();
-        for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
-            double dx = Math.cos(angle) * fuzzyRadius;
-            double dy = Math.sin(angle) * fuzzyRadius;
-            context.beginPath();
-            context.arc(x + dx, y + dy, 2, 0, 2 * Math.PI, false);
-            context.closePath();
-            context.fill();
+        if (multipoint) {
+            for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
+                double dx = Math.cos(angle) * fuzzyRadius;
+                double dy = Math.sin(angle) * fuzzyRadius;
+                context.beginPath();
+                context.arc(x + dx, y + dy, DOT_RADIUS, 0, 2 * Math.PI, false);
+                context.closePath();
+                context.fill();
+            }
         }
     }
 
@@ -271,13 +281,48 @@ public class MyComponentWidget extends Composite implements MouseMoveHandler, Ke
         if (up) vY = -SPEED;
         if (left) vX = -SPEED;
         if (right) vX = SPEED;
-        if(x+vX > 0 && x+vX < WIDTH) {
-            x += vX;
-        }
-        if(y+vY >0 && y+vY < HEIGHT) {
-            y += vY;
+
+        if (getDistanceToClosestWall(vX, vY) > (fuzzyRadius+DOT_RADIUS+SPEED)) {//fuzzyRadius + DOT_RADIUS) {
+            if (x + vX > 0 && x + vX < WIDTH) {
+                x += vX;
+            }
+            if (y + vY > 0 && y + vY < HEIGHT) {
+                y += vY;
+            }
         }
         paint();
+    }
+
+    private double getDistanceToClosestWall(int vX, int vY) {
+        double distance = Double.MAX_VALUE;
+        if (multipoint) {
+            for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
+                double dx = Math.cos(angle) * fuzzyRadius;
+                double dy = Math.sin(angle) * fuzzyRadius;
+                double centerX = this.x + dx;
+                double centerY = this.y + dy;
+                Line ray = new Line(new Point(centerX, centerY), new Point(centerX + vX, centerY + vY));
+                double dist = getDistance(ray);
+                if (dist < distance) distance = dist;
+            }
+        } else {
+
+            Line ray = new Line(new Point(x, y), new Point(x + vX, y + vY));
+            return getDistance(ray);
+//            Intersect closestIntersectForRay = Calculations.getClosestIntersectForRay(ray, lines);
+//            Point intersectionPoint = closestIntersectForRay.getIntersectionPoint();
+//
+//            return Math.sqrt((intersectionPoint.getX() - x) * (intersectionPoint.getX() - x) + (intersectionPoint.getY() - y) * (intersectionPoint.getY() - y));
+        }
+VConsole.log(" == min " +distance);
+        return distance;
+    }
+
+    private double getDistance(Line ray) {
+        Intersect closestIntersectForRay = Calculations.getClosestIntersectForRay(ray, lines);
+        Point intersectionPoint = closestIntersectForRay.getIntersectionPoint();
+
+        return Math.sqrt((intersectionPoint.getX() - x) * (intersectionPoint.getX() - x) + (intersectionPoint.getY() - y) * (intersectionPoint.getY() - y));
     }
 
     @Override

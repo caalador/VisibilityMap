@@ -1,4 +1,4 @@
-package org.percepta.mgrankvi.client;
+package org.percepta.mgrankvi.client.utils;
 
 import com.google.gwt.canvas.dom.client.Context2d;
 

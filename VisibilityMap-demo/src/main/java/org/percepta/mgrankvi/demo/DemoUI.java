@@ -1,6 +1,6 @@
 package org.percepta.mgrankvi.demo;
 
-import org.percepta.mgrankvi.MyComponent;
+import org.percepta.mgrankvi.VisibilityMap;
 
 import javax.servlet.annotation.WebServlet;
 
@@ -28,7 +28,7 @@ public class DemoUI extends UI
     protected void init(VaadinRequest request) {
 
         // Initialize our new UI component
-        final MyComponent component = new MyComponent();
+        final VisibilityMap component = new VisibilityMap();
 
         // Show it in the middle of the screen
         final VerticalLayout layout = new VerticalLayout();

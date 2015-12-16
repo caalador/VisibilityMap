@@ -30,4 +30,9 @@ public Line line;
     public void setAngle(Double angle) {
         this.angle = angle;
     }
+
+    @Override
+    public String toString() {
+        return intersectionPoint.toString() + " t1:" + t1 + " angle:" + angle;
+    }
 }

@@ -14,11 +14,23 @@ public class Calculations {
 
     // Find intersection of RAY & SEGMENT
     public static Intersect getIntersection(Line ray, Line segment) {
+        // We need to find the closest intersection between the ray and all the line segments.
+        // Any line can be written in parametric form as: Point + Direction * T
+
         Parametric r = new Parametric(ray);
         Parametric s = new Parametric(segment);
 
         if (areParallel(r, s)) return null;
 
+//        This gives us 4 equations describing the x & y components of a ray & line segment:
+//        Ray X = r_px+r_dx*T1
+//        Ray Y = r_py+r_dy*T1
+//        Segment X = s_px+s_dx*T2
+//        Segment Y = s_py+s_dy*T2
+
+//        If the ray & segment intersect, their X & Y components will be the same:
+//        r_px+r_dx*T1 = s_px+s_dx*T2
+//        r_py+r_dy*T1 = s_py+s_dy*T2
 
         // SOLVE FOR T1 & T2
         // r_px+r_dx*T1 = s_px+s_dx*T2 && r_py+r_dy*T1 = s_py+s_dy*T2
@@ -31,7 +43,7 @@ public class Calculations {
         if (t1 < 0) return null;
         if (t2 < 0 || t2 > 1) return null;
 
-        return new Intersect(new Point(r.px +r.dx *t1, r.py +r.dy *t1), t1);
+        return new Intersect(new Point(r.px + r.dx * t1, r.py + r.dy * t1), t1);
     }
 
     private static boolean areParallel(Parametric line1, Parametric line2) {
@@ -57,6 +69,12 @@ public class Calculations {
             py = line.start.getY();
             dx = line.end.getX() - line.start.getX();
             dy = line.end.getY() - line.start.getY();
+            if (dx == 0) dx = 0.0000000001;
+        }
+
+        @Override
+        public String toString() {
+            return "[" + px + "," + py + "]_[" + dx + "," + dy + "]";
         }
     }
 
@@ -116,9 +134,9 @@ public class Calculations {
         Intersect closest = null;
         // Closest intersection
         for (Line l : lines) {
-            Intersect i = Calculations.getIntersection(ray, l);
+            Intersect i = getIntersection(ray, l);
             if (i == null) continue;
-            if (closest == null || i.getT1() < closest.getT1()) {
+            if (closest == null || (i.getT1() != null && i.getT1() < closest.getT1())) {
                 closest = i;
                 closest.line = l;
             }

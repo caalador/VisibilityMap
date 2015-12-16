@@ -2,13 +2,13 @@ package org.percepta.mgrankvi;
 
 import org.percepta.mgrankvi.client.MyComponentClientRpc;
 import org.percepta.mgrankvi.client.MyComponentServerRpc;
-import org.percepta.mgrankvi.client.MyComponentState;
+import org.percepta.mgrankvi.client.VisibilityMapState;
 
 import com.vaadin.shared.MouseEventDetails;
 
 // This is the server-side UI component that provides public API 
 // for MyComponent
-public class MyComponent extends com.vaadin.ui.AbstractComponent {
+public class VisibilityMap extends com.vaadin.ui.AbstractComponent {
 
 	private int clickCount = 0;
 
@@ -30,7 +30,7 @@ public class MyComponent extends com.vaadin.ui.AbstractComponent {
 		}
 	};
 
-	public MyComponent() {
+	public VisibilityMap() {
 
 		// To receive events from the client, we register ServerRpc
 		registerRpc(rpc);
@@ -38,7 +38,7 @@ public class MyComponent extends com.vaadin.ui.AbstractComponent {
 
 	// We must override getState() to cast the state to MyComponentState
 	@Override
-	protected MyComponentState getState() {
-		return (MyComponentState) super.getState();
+	protected VisibilityMapState getState() {
+		return (VisibilityMapState) super.getState();
 	}
 }
