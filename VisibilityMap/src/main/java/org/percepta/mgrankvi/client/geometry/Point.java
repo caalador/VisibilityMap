@@ -8,6 +8,8 @@ public class Point implements Comparable<Point> {
     private double x;
     private double y;
 
+    private Point(){}
+
     public Point(final double x, final double y) {
         this.x = x;
         this.y = y;
