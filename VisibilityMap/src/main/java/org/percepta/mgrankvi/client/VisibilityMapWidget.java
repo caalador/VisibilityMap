@@ -37,62 +37,22 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     boolean enableDebugPoints = false;
 
     int fuzzyRadius = 5;
-    int sightPoints = 10;
+    int sightPoints = 5;
 
-    List<Line> lines = new LinkedList<Line>() {{
+    List<Line> lines = new LinkedList<Line>();
+    private final List<Line> borderLines = new LinkedList<Line>() {{
         // Border
         add(new Line(new Point(0, 0), new Point(WIDTH, 0)));
         add(new Line(new Point(WIDTH, 0), new Point(WIDTH, HEIGHT)));
         add(new Line(new Point(WIDTH, HEIGHT), new Point(0, HEIGHT)));
         add(new Line(new Point(0, HEIGHT), new Point(0, 0)));
-
-        // polygon 1
-        add(new Line(new Point(100, 150), new Point(120, 50)));
-        add(new Line(new Point(120, 50), new Point(200, 80)));
-        add(new Line(new Point(200, 80), new Point(140, 210)));
-        add(new Line(new Point(140, 210), new Point(100, 150)));
-
-        // polygon 2
-        add(new Line(new Point(100, 200), new Point(120, 250)));
-        add(new Line(new Point(120, 250), new Point(60, 300)));
-        add(new Line(new Point(60, 300), new Point(100, 200)));
-
-        // Polygon #3
-        add(new Line(new Point(200, 260), new Point(220, 150)));
-        add(new Line(new Point(220, 150), new Point(300, 200)));
-        add(new Line(new Point(300, 200), new Point(350, 320)));
-        add(new Line(new Point(350, 320), new Point(200, 260)));
-
-        // Polygon #4
-        add(new Line(new Point(340, 60), new Point(360, 40)));
-        add(new Line(new Point(360, 40), new Point(370, 70)));
-        add(new Line(new Point(370, 70), new Point(340, 60)));
-
-        // Polygon #5
-        add(new Line(new Point(450, 190), new Point(560, 170)));
-        add(new Line(new Point(560, 170), new Point(540, 270)));
-        add(new Line(new Point(540, 270), new Point(430, 290)));
-        add(new Line(new Point(430, 290), new Point(450, 190)));
-
-        // Polygon #6
-        add(new Line(new Point(400, 95), new Point(580, 50)));
-        add(new Line(new Point(580, 50), new Point(480, 150)));
-        add(new Line(new Point(480, 150), new Point(400, 95)));
-
-        // DashLine
-        add(new Line(new Point(400, 200), new Point(400, 215)));
-        add(new Line(new Point(400, 220), new Point(400, 235)));
-        add(new Line(new Point(400, 240), new Point(400, 255)));
-        add(new Line(new Point(400, 260), new Point(400, 275)));
-        add(new Line(new Point(400, 280), new Point(400, 295)));
-        add(new Line(new Point(400, 300), new Point(400, 310)));
     }};
 
     int x = WIDTH / 2;
     int y = HEIGHT / 2;
 
     public VisibilityMapWidget() {
-
+        lines.addAll(borderLines);
 
         SimplePanel baseContent = new SimplePanel();
         AbsolutePanel absolute = new AbsolutePanel();
@@ -243,9 +203,9 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     }
 
     private void drawPolygons(Context2d context, List<List<Intersect>> intersects) {
-        double alpha = multipoint ? 0.05 : 0.5;
-        double alpha2 = multipoint ? 0.03 : 0.3;
-        double alpha3 = multipoint ? 0.01 : 0.1;
+        double alpha = multipoint ? 0.5 / sightPoints : 0.5;
+        double alpha2 = multipoint ? 0.3 / sightPoints : 0.3;
+        double alpha3 = multipoint ? 0.1 / sightPoints : 0.1;
 
         CanvasGradient radialGradient = context.createRadialGradient(x, y, 0, x, y, WIDTH * 0.75);
         radialGradient.addColorStop(0.0, "hsla(60,100%,75%," + alpha);
@@ -258,6 +218,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     }
 
     private void drawPolygon(Context2d context, List<Intersect> intersectList, FillStrokeStyle fillStyle) {
+        if (intersectList.isEmpty()) return;
         // Area Polygon
         context.setFillStyle(fillStyle);
         context.beginPath();
@@ -294,6 +255,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     boolean left = false;
     boolean right = false;
 
+    private int touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
 
     private void update() {
         vX = 0;
@@ -303,7 +265,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         if (left) vX = -SPEED;
         if (right) vX = SPEED;
 
-        if (getDistanceToClosestWall(vX, vY) > (fuzzyRadius + DOT_RADIUS + SPEED)) {//fuzzyRadius + DOT_RADIUS) {
+        if (getDistanceToClosestWall(vX, vY) > touchDistance) {//fuzzyRadius + DOT_RADIUS) {
             if (x + vX > 0 && x + vX < WIDTH) {
                 x += vX;
             }
@@ -330,12 +292,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
             Line ray = new Line(new Point(x, y), new Point(x + vX, y + vY));
             return getDistance(ray);
-//            Intersect closestIntersectForRay = Calculations.getClosestIntersectForRay(ray, lines);
-//            Point intersectionPoint = closestIntersectForRay.getIntersectionPoint();
-//
-//            return Math.sqrt((intersectionPoint.getX() - x) * (intersectionPoint.getX() - x) + (intersectionPoint.getY() - y) * (intersectionPoint.getY() - y));
         }
-//        VConsole.log(" == min " + distance);
         return distance;
     }
 
@@ -397,5 +354,36 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
             t.cancel();
             t = null;
         }
+    }
+
+    public void setLines(List<Line> lines) {
+        this.lines.clear();
+        this.lines.addAll(borderLines);
+        this.lines.addAll(lines);
+
+        paint();
+    }
+
+    public void setMultipoint(boolean multipoint) {
+        this.multipoint = multipoint;
+        touchDistance = multipoint ? fuzzyRadius + DOT_RADIUS + SPEED : DOT_RADIUS + SPEED;
+        paint();
+    }
+
+    public void setDebugPoints(boolean debugPoints) {
+        enableDebugPoints = debugPoints;
+        paint();
+    }
+
+    public void setFuzzyRadius(int fuzzyRadius) {
+        this.fuzzyRadius = fuzzyRadius;
+        if (multipoint)
+            touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
+        paint();
+    }
+
+    public void setSightPoints(int sightPoints) {
+        this.sightPoints = sightPoints;
+        paint();
     }
 }
