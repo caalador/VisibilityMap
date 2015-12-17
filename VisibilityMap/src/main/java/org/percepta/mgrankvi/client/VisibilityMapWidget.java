@@ -14,7 +14,6 @@ import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
-import com.vaadin.client.VConsole;
 import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
 import org.percepta.mgrankvi.client.geometry.Intersect;
@@ -22,11 +21,9 @@ import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 import org.percepta.mgrankvi.client.utils.DrawUtil;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 public class VisibilityMapWidget extends Composite implements MouseMoveHandler, KeyDownHandler, KeyUpHandler {
 
@@ -36,7 +33,8 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     private static final int DOT_RADIUS = 2;
 
     Canvas map, bg;
-    boolean multipoint = true;
+    boolean multipoint = false;
+    boolean enableDebugPoints = false;
 
     int fuzzyRadius = 5;
     int sightPoints = 10;
@@ -141,39 +139,9 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
                 intersects.add(Calculations.getSightPolygons(x + dx, y + dy, lines));
             }
         }
-//        drawPolygon(context, Calculations.getSightPolygons(x, y, lines), "hsla(60, 75%, 60%, 0.2)");//"rgba(255,255,0,0.2)");
         drawPolygons(context, intersects);
 
-        // Segment lines
-        context.setStrokeStyle("orange");
-        Map<String, LinkedList<Point>> lines = new HashMap<String, LinkedList<Point>>();
-        for (List<Intersect> is : intersects) {
-            for (Intersect i : is) {
-                Line line = i.line;
-                if (lines.containsKey(line.toString())) {
-                    lines.get(line.toString()).add(i.getIntersectionPoint());
-                } else {
-                    LinkedList<Point> points = new LinkedList<Point>();
-                    points.add(i.getIntersectionPoint());
-                    lines.put(line.toString(), points);
-                }
-            }
-        }
-        for (Map.Entry<String, LinkedList<Point>> entry : lines.entrySet()) {
-            Iterator<Point> points = entry.getValue().iterator();
-            context.save();
-            context.beginPath();
-            context.setLineWidth(2.0);
-            Point p = points.next();
-            context.moveTo(p.getX(), p.getY());
-            while (points.hasNext()) {
-                p = points.next();
-                context.lineTo(p.getX(), p.getY());
-            }
-            context.closePath();
-            context.stroke();
-            context.restore();
-        }
+        drawVisibleWallSegments(context, intersects);
 
         // Test having hidden points in map that only shown when "visible"
         context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
@@ -225,11 +193,64 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         }
     }
 
+    private void drawVisibleWallSegments(Context2d context, List<List<Intersect>> intersects) {
+        // Segment lines
+        context.save();
+        context.setStrokeStyle("orange");
+
+        for (List<Intersect> list : intersects) {
+            context.beginPath();
+            context.setLineWidth(2.0);
+
+            Iterator<Intersect> intersect = list.iterator();
+
+            Intersect intersection = intersect.next();
+            Intersect initial = intersection;
+            Line previousLine = intersection.line;
+            context.moveTo(intersection.getX(), intersection.getY());
+
+            while (intersect.hasNext()) {
+                intersection = intersect.next();
+                if (intersection.line.equals(previousLine)) {
+                    context.lineTo(intersection.getX(), intersection.getY());
+                } else {
+                    context.moveTo(intersection.getX(), intersection.getY());
+                }
+                previousLine = intersection.line;
+            }
+            if (initial.line.equals(previousLine)) {
+                context.lineTo(initial.getX(), initial.getY());
+            } else {
+                context.moveTo(initial.getX(), initial.getY());
+            }
+            context.closePath();
+            context.stroke();
+
+            // Enable for debugging purposes to see where we have position points
+            if (enableDebugPoints) {
+                intersect = list.iterator();
+
+                while (intersect.hasNext()) {
+                    Point p = intersect.next().getIntersectionPoint();
+                    context.beginPath();
+                    context.arc(p.getX(), p.getY(), 3, 0, 2 * Math.PI, false);
+                    context.closePath();
+                    context.fill();
+                }
+            }
+        }
+        context.restore();
+    }
+
     private void drawPolygons(Context2d context, List<List<Intersect>> intersects) {
+        double alpha = multipoint ? 0.05 : 0.5;
+        double alpha2 = multipoint ? 0.03 : 0.3;
+        double alpha3 = multipoint ? 0.01 : 0.1;
+
         CanvasGradient radialGradient = context.createRadialGradient(x, y, 0, x, y, WIDTH * 0.75);
-        radialGradient.addColorStop(0.0, "hsla(60,100%,75%,0.05");
-        radialGradient.addColorStop(0.5, "hsla(60,50%,50%,0.03");
-        radialGradient.addColorStop(1.0, "hsla(60,60%,30%,0.01");
+        radialGradient.addColorStop(0.0, "hsla(60,100%,75%," + alpha);
+        radialGradient.addColorStop(0.5, "hsla(60,50%,50%," + alpha2);
+        radialGradient.addColorStop(1.0, "hsla(60,60%,30%," + alpha3);
 
         for (List<Intersect> polygon : intersects) {
             drawPolygon(context, polygon, radialGradient);
@@ -282,7 +303,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         if (left) vX = -SPEED;
         if (right) vX = SPEED;
 
-        if (getDistanceToClosestWall(vX, vY) > (fuzzyRadius+DOT_RADIUS+SPEED)) {//fuzzyRadius + DOT_RADIUS) {
+        if (getDistanceToClosestWall(vX, vY) > (fuzzyRadius + DOT_RADIUS + SPEED)) {//fuzzyRadius + DOT_RADIUS) {
             if (x + vX > 0 && x + vX < WIDTH) {
                 x += vX;
             }
@@ -314,7 +335,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 //
 //            return Math.sqrt((intersectionPoint.getX() - x) * (intersectionPoint.getX() - x) + (intersectionPoint.getY() - y) * (intersectionPoint.getY() - y));
         }
-VConsole.log(" == min " +distance);
+//        VConsole.log(" == min " + distance);
         return distance;
     }
 

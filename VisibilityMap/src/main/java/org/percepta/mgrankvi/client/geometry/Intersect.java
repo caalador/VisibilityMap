@@ -31,6 +31,14 @@ public Line line;
         this.angle = angle;
     }
 
+    public double getX() {
+        return intersectionPoint.getX();
+    }
+
+    public double getY() {
+        return intersectionPoint.getY();
+    }
+
     @Override
     public String toString() {
         return intersectionPoint.toString() + " t1:" + t1 + " angle:" + angle;
