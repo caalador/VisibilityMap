@@ -1,43 +1,60 @@
 package org.percepta.mgrankvi.demo;
 
-import com.vaadin.data.Property;
-import com.vaadin.ui.CheckBox;
-import com.vaadin.ui.HorizontalLayout;
-import com.vaadin.ui.NativeSelect;
-import com.vaadin.ui.TextField;
-import org.percepta.mgrankvi.VisibilityMap;
-
-import javax.servlet.annotation.WebServlet;
-
+import com.google.gwt.thirdparty.guava.common.collect.Lists;
+import com.vaadin.annotations.Push;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Title;
 import com.vaadin.annotations.VaadinServletConfiguration;
+import com.vaadin.data.Property;
+import com.vaadin.event.MouseEvents;
+import com.vaadin.server.FileResource;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Button;
+import com.vaadin.ui.CheckBox;
+import com.vaadin.ui.HorizontalLayout;
+import com.vaadin.ui.Image;
+import com.vaadin.ui.NativeSelect;
+import com.vaadin.ui.Panel;
+import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
+import org.percepta.mgrankvi.ImageToLines;
+import org.percepta.mgrankvi.VisibilityMap;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 
+import javax.servlet.annotation.WebServlet;
+import java.io.File;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 
 @Theme("demo")
 @Title("VisibilityMap Demo")
 @SuppressWarnings("serial")
-public class DemoUI extends UI
-{
+@Push
+public class DemoUI extends UI {
 
     @WebServlet(value = "/*", asyncSupported = true)
     @VaadinServletConfiguration(productionMode = false, ui = DemoUI.class, widgetset = "org.percepta.mgrankvi.demo.DemoWidgetSet")
     public static class Servlet extends VaadinServlet {
     }
 
-    private CheckBox multipoint, debug;
+    private CheckBox multipoint, debug, drawLines;
     private TextField fuzzy, amount;
 
     // Initialize our new UI map
     private VisibilityMap map;
+
+
+    private static final int WIDTH = 640;
+    private static final int HEIGHT = 360;
+    Point p1, p2, p3;
+    final Random rand = new Random(System.currentTimeMillis());
 
     @Override
     protected void init(VaadinRequest request) {
@@ -45,11 +62,39 @@ public class DemoUI extends UI
         map = new VisibilityMap();
         init();
         addLines(map);
+        p1 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
+        p2 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
+        p3 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
+        map.addHidden(p1);
+        map.addHidden(p2);
+        map.addHidden(p3);
+
+        Button random = new Button("Random", new Button.ClickListener() {
+            @Override
+            public void buttonClick(Button.ClickEvent clickEvent) {
+                map.clearHidden();
+
+                p1 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
+                p2 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
+                p3 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
+                map.addHidden(p1);
+                map.addHidden(p2);
+                map.addHidden(p3);
+            }
+        });
+        Button clear = new Button("Clear", new Button.ClickListener() {
+            @Override
+            public void buttonClick(Button.ClickEvent clickEvent) {
+                map.setLines(Lists.<Line>newLinkedList());
+            }
+        });
 
         // Show it in the middle of the screen
         final VerticalLayout layout = new VerticalLayout();
 
-        HorizontalLayout hl = new HorizontalLayout(multipoint, debug, fuzzy, amount);
+        Image fullMap = getMap("Full Map", "/org/percepta/mgrankvi/demo/Dungeon.png", false);
+
+        HorizontalLayout hl = new HorizontalLayout(fuzzy, amount, multipoint, debug, drawLines, random, clear);
         hl.setSpacing(true);
         layout.addComponent(hl);
 
@@ -58,15 +103,95 @@ public class DemoUI extends UI
         layout.addComponent(map);
         layout.setComponentAlignment(map, Alignment.MIDDLE_CENTER);
         layout.setExpandRatio(map, 1f);
+        Panel p = new Panel();
+        VerticalLayout imageLayout = new VerticalLayout();
+        p.setContent(imageLayout);
+        p.setWidth("100%");
+        p.setHeight("400px");
+        imageLayout.addComponent(fullMap);
+        imageLayout.addComponent(getMap("Base", "/org/percepta/mgrankvi/demo/dungeon/Base.png", false));
+        imageLayout.addComponent(getMap("Divider 1", "/org/percepta/mgrankvi/demo/dungeon/divider1.png", true));
+        imageLayout.addComponent(getMap("Divider 2", "/org/percepta/mgrankvi/demo/dungeon/divider2.png", true));
+        imageLayout.addComponent(getMap("Divider 3", "/org/percepta/mgrankvi/demo/dungeon/divider3.png", true));
+        imageLayout.addComponent(getMap("Divider 4", "/org/percepta/mgrankvi/demo/dungeon/divider4.png", true));
+        imageLayout.addComponent(getMap("Divider 5", "/org/percepta/mgrankvi/demo/dungeon/divider5.png", true));
+        imageLayout.addComponent(getMap("Divider 6", "/org/percepta/mgrankvi/demo/dungeon/divider6.png", true));
+        layout.addComponent(p);
         setContent(layout);
 
+        final Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                update();
+            }
+        }, 1500, 500);
+        getUI().addDetachListener(new DetachListener() {
+            @Override
+            public void detach(DetachEvent detachEvent) {
+                timer.cancel();
+            }
+        });
     }
+
+    private Image getMap(String caption, final String file, final boolean add) {
+        Image map = new Image(caption, new FileResource(new File(getClass().getResource(file).getFile())));
+        map.addClickListener(new MouseEvents.ClickListener() {
+            @Override
+            public void click(MouseEvents.ClickEvent clickEvent) {
+                if (add)
+                    DemoUI.this.map.addLines(new ImageToLines().getLines(file));
+                else
+                    DemoUI.this.map.setLines(new ImageToLines().getLines(file));
+            }
+        });
+        return map;
+    }
+
+    private void update() {
+        getUI().access(new Runnable() {
+            @Override
+            public void run() {
+                map.clearHidden();
+                int x = rand.nextInt() % 2;
+                int y = rand.nextInt() % 2;
+                p1 = new Point(nextX(x, p1), nextY(y, p1));
+
+                x = rand.nextInt() % 2;
+                y = rand.nextInt() % 2;
+                p2 = new Point(nextX(x, p2), nextY(y, p2));
+
+                x = rand.nextInt() % 2;
+                y = rand.nextInt() % 2;
+                p3 = new Point(nextX(x, p3), nextY(y, p3));
+                map.addHidden(p1);
+                map.addHidden(p2);
+                map.addHidden(p3);
+            }
+        });
+    }
+
+    public double nextX(int x, Point p) {
+        if (x == 0 && p.getX() + 1 < WIDTH) {
+            return p.getX() + 1;
+        }
+        return p.getX() - 1;
+    }
+
+    public double nextY(int y, Point p) {
+        if (y == 0 && p.getY() + 1 < WIDTH) {
+            return p.getY() + 1;
+        }
+        return p.getY() - 1;
+    }
+
     private void init() {
         multipoint = newCheckBox("MultiPoint", map.isMultiselect());
         debug = newCheckBox("debug", map.isDebug());
+        drawLines = newCheckBox("Draw hidden Lines", map.isDrawLines());
 
-        fuzzy= newTextField("Fuzzy radius", ""+map.getFuzzyRadius());
-        amount= newTextField("Sight points", ""+map.getSightPoints());
+        fuzzy = newTextField("Fuzzy radius", "" + map.getFuzzyRadius());
+        amount = newTextField("Sight points", "" + map.getSightPoints());
 
         multipoint.addValueChangeListener(new Property.ValueChangeListener() {
             @Override
@@ -79,6 +204,12 @@ public class DemoUI extends UI
             @Override
             public void valueChange(Property.ValueChangeEvent event) {
                 map.setDebugPoints(debug.getValue());
+            }
+        });
+        drawLines.addValueChangeListener(new Property.ValueChangeListener() {
+            @Override
+            public void valueChange(Property.ValueChangeEvent event) {
+                map.setDrawLines(drawLines.getValue());
             }
         });
 
@@ -99,8 +230,32 @@ public class DemoUI extends UI
     }
 
     private void addLines(VisibilityMap map) {
-
-        map.setLines(new LinkedList<Line>(){
+        List<Line> lines = Lists.newLinkedList();
+//        List<HarrisFast.Corner> corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/Base.png"));
+//        lines.addAll(getLines(corners));
+//        corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/divider1.png"));
+//        lines.addAll(getLines(corners));
+//        corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/divider2.png"));
+//        lines.addAll(getLines(corners));
+//        corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/divider3.png"));
+//        lines.addAll(getLines(corners));
+//        corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/divider4.png"));
+//        lines.addAll(getLines(corners));
+//        corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/divider5.png"));
+//        lines.addAll(getLines(corners));
+//        List<HarrisFast.Corner>corners = getCorners(getImage("/Users/Mikael/Desktop/dungeon/divider6.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/Base.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/divider1.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/divider2.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/divider3.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/divider4.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/divider5.png"));
+//        lines.addAll(getLines("/Users/Mikael/Desktop/dungeon/divider6.png"));
+//        lines.addAll(new ImageToLines().getLines("/org/percepta/mgrankvi/demo/Dungeon.png"));//"/Users/Mikael/Desktop/dungeon/Dungeon.png"));
+//        System.out.println(lines.size());
+//
+//        map.setLines(lines);
+        map.setLines(new LinkedList<Line>() {
             {
                 // polygon 1
                 add(new Line(new Point(100, 150), new Point(120, 50)));
@@ -142,9 +297,9 @@ public class DemoUI extends UI
                 add(new Line(new Point(400, 260), new Point(400, 275)));
                 add(new Line(new Point(400, 280), new Point(400, 295)));
                 add(new Line(new Point(400, 300), new Point(400, 310)));
-            }});
+            }
+        });
     }
-
 
     private TextField newTextField(String caption, String value) {
         TextField textField = new TextField(caption);
@@ -164,7 +319,7 @@ public class DemoUI extends UI
     private NativeSelect newSelect(String caption, Object... values) {
         NativeSelect select = new NativeSelect(caption);
 
-        for(Object item:values) {
+        for (Object item : values) {
             select.addItem(item);
         }
 

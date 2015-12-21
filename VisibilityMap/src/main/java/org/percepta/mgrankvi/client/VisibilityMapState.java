@@ -1,6 +1,7 @@
 package org.percepta.mgrankvi.client;
 
 import org.percepta.mgrankvi.client.geometry.Line;
+import org.percepta.mgrankvi.client.geometry.Point;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -11,7 +12,9 @@ public class VisibilityMapState extends com.vaadin.shared.AbstractComponentState
 	public String text = "MyComponent";
 
 	public List<Line> lines = new LinkedList<Line>();
+    public List<Point> hidden = new LinkedList<Point>();
 
+	public boolean drawLines = false;
 	public boolean multipoint = false;
 	public boolean enableDebugPoints = false;
 

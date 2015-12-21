@@ -57,6 +57,7 @@ public class VisibilityMapConnector extends AbstractComponentConnector {
         super.onStateChanged(stateChangeEvent);
         VConsole.log("State changed " + getState().lines.size());
         getWidget().setLines(getState().lines);
+        getWidget().setHidden(getState().hidden);
     }
 
     @OnStateChange("multipoint")
@@ -77,5 +78,10 @@ public class VisibilityMapConnector extends AbstractComponentConnector {
     @OnStateChange("sightPoints")
     void sightPoints() {
         getWidget().setSightPoints(getState().sightPoints);
+    }
+
+    @OnStateChange("drawLines")
+    void drawLines() {
+        getWidget().setDrawLines(getState().drawLines);
     }
 }

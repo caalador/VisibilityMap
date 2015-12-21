@@ -9,6 +9,7 @@ public class Line {
     public Point end;
 
     private Line(){}
+
     public Line(final Point start, final Point end) {
         this.start = start;
         this.end = end;
@@ -19,10 +20,13 @@ public class Line {
         return start.toString() + "-" + end.toString();
     }
 
+    public String reverseString() {
+        return end.toString() + "-" + start.toString();
+    }
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof Line) {
-            return toString().equals(obj.toString());
+            return toString().equals(obj.toString()) && reverseString().equals(((Line) obj).reverseString());
         }
         return false;
     }
