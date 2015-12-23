@@ -22,6 +22,9 @@ import java.util.Set;
 /**
  * Utility to get the lines in a image file to generate lines for the VisibilityMap.
  *
+ * Note! Horizontal lines only get the left point marked by the Harris corner,
+ * so a light colored crossing is needed to get the right side!
+ *
  * @author Mikael Grankvist - Vaadin }>
  */
 public class ImageToLines {
