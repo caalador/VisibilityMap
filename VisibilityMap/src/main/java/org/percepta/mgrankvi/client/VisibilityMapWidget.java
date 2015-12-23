@@ -16,22 +16,26 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
 import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
+import org.percepta.mgrankvi.client.geometry.Direction;
 import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 import org.percepta.mgrankvi.client.utils.DrawUtil;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 public class VisibilityMapWidget extends Composite implements MouseMoveHandler, KeyDownHandler, KeyUpHandler {
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
 
-    private static final int DOT_RADIUS = 2;
-    public int UPDATE_SPEED = 50;
+    public static final int DOT_RADIUS = 2;
+    public static final double FULL_CIRCLE = 2 * Math.PI;
+    public int UPDATE_SPEED = 10;
 
     private Timer updateTimer;
 
@@ -49,6 +53,9 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     int fuzzyRadius = 5;
     int sightPoints = 5;
+
+    double multipointStep = FULL_CIRCLE / sightPoints;
+    Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
 
     List<Point> hidden = new LinkedList<Point>();
     List<Line> lines = new LinkedList<Line>();
@@ -100,74 +107,76 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     }
 
     boolean painting = false;
+
     private void paint() {
-        if(painting) return;
+        if (painting) return;
         painting = true;
-        clearCanvas();
-        Context2d context = map.getContext2d();
+        try {
+            clearCanvas();
+            Context2d context = map.getContext2d();
 
-        if(drawLines) {
-            // Segment lines
-            context.setStrokeStyle("#999");
-            for (Line l : lines) {
-                context.beginPath();
-                context.moveTo(l.start.getX(), l.start.getY());
-                context.lineTo(l.end.getX(), l.end.getY());
-                context.closePath();
-                context.stroke();
+            if (drawLines) {
+                // Segment lines
+                context.setStrokeStyle("#999");
+                for (Line l : lines) {
+                    context.beginPath();
+                    context.moveTo(l.start.getX(), l.start.getY());
+                    context.lineTo(l.end.getX(), l.end.getY());
+                    context.closePath();
+                    context.stroke();
+                }
+
             }
 
-        }
+            List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
 
-        List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
+            // Collect all intersection points from position x,y
+            intersects.add(Calculations.getSightPolygons(x, y, lines));
 
-        // Collect all intersection points from position x,y
-        intersects.add(Calculations.getSightPolygons(x, y, lines));
-
-        if (multipoint) {
-            // If using multiple points around center collect all intersections for points @ angle+distance
-            for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
-                double dx = Math.cos(angle) * fuzzyRadius;
-                double dy = Math.sin(angle) * fuzzyRadius;
-                intersects.add(Calculations.getSightPolygons(x + dx, y + dy, lines));
+            if (multipoint) {
+                // If using multiple points around center collect all intersections for points @ angle+distance
+                for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+                    Direction d = getAngleDirections(angle);
+                    intersects.add(Calculations.getSightPolygons(x + d.dx, y + d.dy, lines));
+                }
             }
-        }
-        // Draw our visibility polygon(s)
-        drawPolygons(context, intersects);
+            // Draw our visibility polygon(s)
+            drawPolygons(context, intersects);
 
-        // Using intersection points draw visible wall parts.
-        drawVisibleWallSegments(context, intersects);
+            // Using intersection points draw visible wall parts.
+            drawVisibleWallSegments(context, intersects);
 
-        // Draw hidden content that only shows when inside a visibility polygon
-        context.save();
-        context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
+            // Draw hidden content that only shows when inside a visibility polygon
+            context.save();
+            context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
 
-        context.setFillStyle("#000");
-        for (Point p : hidden) {
-            context.beginPath();
-            context.arc(p.getX(), p.getY(), DOT_RADIUS, 0, 2 * Math.PI, false);
-            context.closePath();
-            context.fill();
-        }
-        context.restore();
-//        context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_OVER);
-//VConsole.log(context.getGlobalCompositeOperation());
-        // Draw red dots for center position of sight cones.
-        context.setFillStyle("#dd3838");
-        context.beginPath();
-        context.arc(x, y, DOT_RADIUS, 0, 2 * Math.PI, false);
-        context.fill();
-        if (multipoint) {
-            for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
-                double dx = Math.cos(angle) * fuzzyRadius;
-                double dy = Math.sin(angle) * fuzzyRadius;
+            context.setFillStyle("#000");
+            for (Point p : hidden) {
                 context.beginPath();
-                context.arc(x + dx, y + dy, DOT_RADIUS, 0, 2 * Math.PI, false);
+                context.arc(p.getX(), p.getY(), DOT_RADIUS, 0, FULL_CIRCLE, false);
                 context.closePath();
                 context.fill();
             }
+            context.restore();
+//        context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_OVER);
+
+            // Draw red dots for center position of sight cones.
+            context.setFillStyle("#dd3838");
+            context.beginPath();
+            context.arc(x, y, DOT_RADIUS, 0, 2 * Math.PI, false);
+            context.fill();
+            if (multipoint) {
+                for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+                    Direction d = getAngleDirections(angle);
+                    context.beginPath();
+                    context.arc(x + d.dx, y + d.dy, DOT_RADIUS, 0, FULL_CIRCLE, false);
+                    context.closePath();
+                    context.fill();
+                }
+            }
+        } finally {
+            painting = false;
         }
-        painting = false;
     }
 
     /**
@@ -217,7 +226,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
                 while (intersect.hasNext()) {
                     Point p = intersect.next().getIntersectionPoint();
                     context.beginPath();
-                    context.arc(p.getX(), p.getY(), 3, 0, 2 * Math.PI, false);
+                    context.arc(p.getX(), p.getY(), 3, 0, FULL_CIRCLE, false);
                     context.closePath();
                     context.fill();
                 }
@@ -247,10 +256,10 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         context.setFillStyle(fillStyle);
         context.beginPath();
         Iterator<Intersect> intersects = intersectList.iterator();
-        Point intersectionPoint = intersects.next().getIntersectionPoint();
+        Intersect intersectionPoint = intersects.next();
         context.moveTo(intersectionPoint.getX(), intersectionPoint.getY());
         while (intersects.hasNext()) {
-            intersectionPoint = intersects.next().getIntersectionPoint();
+            intersectionPoint = intersects.next();
             context.lineTo(intersectionPoint.getX(), intersectionPoint.getY());
         }
         context.closePath();
@@ -279,7 +288,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         if (left) vX = -SPEED;
         if (right) vX = SPEED;
 
-        if (getDistanceToClosestWall(vX, vY) > touchDistance) {//fuzzyRadius + DOT_RADIUS) {
+        if (getDistanceToClosestWall(vX, vY) > touchDistance) {
             if (x + vX > 0 && x + vX < WIDTH) {
                 x += vX;
             }
@@ -293,17 +302,15 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     private double getDistanceToClosestWall(int vX, int vY) {
         double distance = Double.MAX_VALUE;
         if (multipoint) {
-            for (double angle = 0; angle < Math.PI * 2; angle += (Math.PI * 2) / sightPoints) {
-                double dx = Math.cos(angle) * fuzzyRadius;
-                double dy = Math.sin(angle) * fuzzyRadius;
-                double centerX = this.x + dx;
-                double centerY = this.y + dy;
+            for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+                Direction d = getAngleDirections(angle);
+                double centerX = x + d.dx;
+                double centerY = y + d.dy;
                 Line ray = new Line(new Point(centerX, centerY), new Point(centerX + vX, centerY + vY));
                 double dist = getDistance(ray);
                 if (dist < distance) distance = dist;
             }
         } else {
-
             Line ray = new Line(new Point(x, y), new Point(x + vX, y + vY));
             return getDistance(ray);
         }
@@ -315,6 +322,19 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         Point intersectionPoint = closestIntersectForRay.getIntersectionPoint();
 
         return Math.sqrt((intersectionPoint.getX() - x) * (intersectionPoint.getX() - x) + (intersectionPoint.getY() - y) * (intersectionPoint.getY() - y));
+    }
+
+    private Direction getAngleDirections(double angle) {
+        if (angleDirections.containsKey(angle)) {
+            return angleDirections.get(angle);
+        }
+        Direction d = new Direction();
+        d.dx = Math.cos(angle) * fuzzyRadius;
+        d.dy = Math.sin(angle) * fuzzyRadius;
+
+        angleDirections.put(angle, d);
+
+        return d;
     }
 
     @Override
@@ -373,8 +393,8 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     public void setLines(List<Line> lines) {
         List<Line> clear = new LinkedList<Line>();
 
-        for(Line line : this.lines) {
-            if(!lines.contains(line) || !borderLines.contains(line)){
+        for (Line line : this.lines) {
+            if (!lines.contains(line) || !borderLines.contains(line)) {
                 clear.add(line);
             }
         }
@@ -400,19 +420,21 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         this.fuzzyRadius = fuzzyRadius;
         if (multipoint)
             touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
+        angleDirections.clear();
         paint();
     }
 
     public void setSightPoints(int sightPoints) {
         this.sightPoints = sightPoints;
+        multipointStep = FULL_CIRCLE / sightPoints;
         paint();
     }
 
     public void setHidden(List<Point> hidden) {
         List<Point> clear = new LinkedList<Point>();
 
-        for(Point point : this.hidden) {
-            if(!hidden.contains(point)){
+        for (Point point : this.hidden) {
+            if (!hidden.contains(point)) {
                 clear.add(point);
             }
         }

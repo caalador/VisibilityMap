@@ -6,10 +6,17 @@ package org.percepta.mgrankvi.client.geometry;
 public class Intersect {
 
     Point intersectionPoint;
+    Parametric rayParameters;
     Double t1, angle;
     public Line line;
 
-    private Intersect() {}
+    private Intersect() {
+    }
+
+    public Intersect(Parametric rayParameters, Double t1) {
+        this.rayParameters = rayParameters;
+        this.t1 = t1;
+    }
 
     public Intersect(Point intersectionPoint, Double t1) {
         this.intersectionPoint = intersectionPoint;
@@ -17,6 +24,10 @@ public class Intersect {
     }
 
     public Point getIntersectionPoint() {
+        if (intersectionPoint == null) {
+            intersectionPoint = new Point(rayParameters.px + rayParameters.dx * t1,
+                    rayParameters.py + rayParameters.dy * t1);
+        }
         return intersectionPoint;
     }
 
@@ -34,11 +45,11 @@ public class Intersect {
     }
 
     public double getX() {
-        return intersectionPoint.getX();
+        return getIntersectionPoint().getX();
     }
 
     public double getY() {
-        return intersectionPoint.getY();
+        return getIntersectionPoint().getY();
     }
 
     @Override

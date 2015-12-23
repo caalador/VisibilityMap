@@ -2,15 +2,18 @@ package org.percepta.mgrankvi.client.geometry;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
 public class Calculations {
+    private static Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
 
     // Find intersection of RAY & SEGMENT
     public static Intersect getIntersection(Line ray, Line segment) {
@@ -43,39 +46,19 @@ public class Calculations {
         if (t1 < 0) return null;
         if (t2 < 0 || t2 > 1) return null;
 
-        return new Intersect(new Point(r.px + r.dx * t1, r.py + r.dy * t1), t1);
+        // moved calculation and creation of Point object to Intersect as most Intersects are discarded.
+//        return new Intersect(new Point(r.px + r.dx * t1, r.py + r.dy * t1), t1);
+        return new Intersect(r, t1);
     }
 
     private static boolean areParallel(Parametric line1, Parametric line2) {
         double r_mag = Math.sqrt(line1.dx * line1.dx + line1.dy * line1.dy);
         double s_mag = Math.sqrt(line2.dx * line2.dx + line2.dy * line2.dy);
+
         if (line1.dx / r_mag == line2.dx / s_mag && line1.dy / r_mag == line2.dy / s_mag) {
             return true;
         }
         return false;
-    }
-
-    private static class Parametric {
-        // Points
-        public double px;
-        public double py;
-
-        // Directions
-        public double dx;
-        public double dy;
-
-        public Parametric(Line line) {
-            px = line.start.getX();
-            py = line.start.getY();
-            dx = line.end.getX() - line.start.getX();
-            dy = line.end.getY() - line.start.getY();
-            if (dx == 0) dx = 0.0000000001;
-        }
-
-        @Override
-        public String toString() {
-            return "[" + px + "," + py + "]_[" + dx + "," + dy + "]";
-        }
     }
 
     public static LinkedList<Intersect> getSightPolygons(double x, double y, List<Line> lines) {
@@ -142,5 +125,19 @@ public class Calculations {
             }
         }
         return closest;
+    }
+
+
+    private static Direction getAngleDirections(double angle) {
+        if(angleDirections.containsKey(angle)) {
+            return angleDirections.get(angle);
+        }
+        Direction d = new Direction();
+        d.dx = Math.cos(angle);
+        d.dy = Math.sin(angle);
+
+        angleDirections.put(angle, d);
+
+        return d;
     }
 }

@@ -135,7 +135,14 @@ public class DemoUI extends UI {
     }
 
     private Image getMap(String caption, final String file, final boolean add) {
-        Image map = new Image(caption, new FileResource(new File(getClass().getResource(file).getFile())));
+        File sourceFile;
+        if(getClass().getResource(file) != null) {
+            sourceFile =new File(getClass().getResource(file).getFile());
+        }
+        else {
+            sourceFile = new File(file);
+        }
+        Image map = new Image(caption, new FileResource(sourceFile));
         map.addClickListener(new MouseEvents.ClickListener() {
             @Override
             public void click(MouseEvents.ClickEvent clickEvent) {

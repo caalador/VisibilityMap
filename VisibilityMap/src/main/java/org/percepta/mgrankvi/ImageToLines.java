@@ -1,18 +1,23 @@
 package org.percepta.mgrankvi;
 
 import com.google.gwt.thirdparty.guava.common.collect.Lists;
+import com.google.gwt.thirdparty.guava.common.collect.Sets;
 import org.apache.commons.codec.binary.Base64;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 
 import javax.imageio.ImageIO;
+import java.awt.Color;
 import java.awt.Graphics2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Utility to get the lines in a image file to generate lines for the VisibilityMap.
@@ -72,15 +77,18 @@ public class ImageToLines {
     private static List<Point> getCornerPoints(BufferedImage image) {
         List<HarrisFast.Corner> corners = getCorners(image);
 
-        List<Point> points = Lists.newLinkedList();
+        // Put points to set to get rid of points in same position.
+        Set<Point> points = Sets.newHashSet();
         for (HarrisFast.Corner corner : corners) {
             points.add(new Point(corner.x, corner.y));
         }
-        return points;
+
+        return Lists.newArrayList(points);
     }
 
     /**
      * Generate lines from found points by referring to the image to check if a line should be drawn.
+     *
      * @param image
      * @param points
      * @return
@@ -100,6 +108,7 @@ public class ImageToLines {
                 boolean foundLine = true;
 
                 if (p.getX() == p2.getX()) {
+                    // Check vertical line
                     min = Math.min(p.getY(), p2.getY());
                     max = Math.max(p.getY(), p2.getY());
                     for (double y = min; y < max; y++) {
@@ -109,6 +118,7 @@ public class ImageToLines {
                         }
                     }
                 } else if (p.getY() == p2.getY()) {
+                    // Check horizontal line
                     min = Math.min(p.getX(), p2.getX());
                     max = Math.max(p.getX(), p2.getX());
                     for (double x = min; x < max; x++) {
@@ -118,6 +128,7 @@ public class ImageToLines {
                         }
                     }
                 } else {
+                    // Check line with a slope (eg. not fully vertical or horizontal)
                     Double m = getSlope(p, p2);
                     Double b = intercept(p, m);
 
@@ -133,8 +144,10 @@ public class ImageToLines {
                     }
                 }
 
+                // Create line if one marked as found
                 if (foundLine) {
                     Line line = new Line(p, p2);
+                    // add line if not already added.
                     if (!lines.contains(line)) {
                         lines.add(line);
                     }
@@ -160,6 +173,7 @@ public class ImageToLines {
 
     /**
      * Get the y-intercept value for point and slope
+     *
      * @return y-intercept point
      */
     private static Double intercept(Point p, Double slope) {
@@ -171,6 +185,7 @@ public class ImageToLines {
 
     /**
      * Scan for corners in image using the Harris Fast Scan algorithm.
+     *
      * @param image Image to search for corners
      * @return corners found
      */
@@ -188,9 +203,9 @@ public class ImageToLines {
 
         //////////////////////
 
-        double sigma = 1.2;  // parametre du filtre gaussien
-        double k = 0.06; // parametre de la formule de la mesure
-        int spacing = 8;    // distance minimum entre 2 coins
+        double sigma = 1.2; // parametre du filtre gaussien
+        double k = 0.06;    // parametre de la formule de la mesure
+        int spacing = 2;    // minimun distance between 2 corners
 
         // Init
         HarrisFast hf = new HarrisFast(input, width, height);
@@ -200,21 +215,93 @@ public class ImageToLines {
         List<HarrisFast.Corner> corners = hf.corners;
         // Remove the last corner as it is always the lower right corner of image enen though there was no point there.
         corners.remove(corners.size() - 1);
+        // Harris can have corners positioned a bit differently dependent on the scan direction
+        // Position corners so they align for straighter lines.
+        for (HarrisFast.Corner corner : corners) {
+            moveUntilEnd(image, corner);
+        }
 
         // Uncomment if a base64 image is needed for debugging purposes!!!
-//        BufferedImage bufferedImage = duplicateImage(image);
-//        Graphics2D g2d = bufferedImage.createGraphics();
-//        g2d.setColor(Color.RED);
-//        int nr = 1;
-//
-//        for (HarrisFast.Corner corner : corners) {
-//            g2d.fill(new Rectangle2D.Float(corner.x - 5, corner.y - 5, 10, 10));
-//            g2d.drawString("" + nr++, corner.x - 10, corner.y - 10);
-//        }
-//        g2d.dispose();
-//        System.out.println(encodeImageToBase64(bufferedImage));
+//        outputResult(image, corners);
 
         return corners;
+    }
+
+    private static void outputResult(BufferedImage image, List<HarrisFast.Corner> corners) {
+        BufferedImage bufferedImage = duplicateImage(image);
+        Graphics2D g2d = bufferedImage.createGraphics();
+        g2d.setColor(Color.RED);
+        int nr = 1;
+
+        for (HarrisFast.Corner corner : corners) {
+            g2d.fill(new Rectangle2D.Float(corner.x, corner.y, 1, 1));
+//            g2d.drawString("" + nr++, corner.x - 15, corner.y - 5);
+        }
+        g2d.dispose();
+        System.out.println(encodeImageToBase64(bufferedImage));
+    }
+
+    // Following matrices show possible line ends and corners
+    // [0 1 0] [0 0 0] [0 0 0] [0 1 0] [0 1 0] [0 1 0] [0 0 0] [0 0 0] [0 0 0]
+    // [1 1 1] [0 1 1] [1 1 0] [1 1 0] [0 1 1] [0 1 0] [0 1 0] [1 1 0] [0 1 1]
+    // [0 1 0] [0 1 0] [0 1 0] [0 0 0] [0 0 0] [0 0 0] [0 1 0] [0 0 0] [0 0 0]
+
+    /**
+     * Move corner so it is at a end point or crossing.
+     *
+     * @param image
+     * @param corner
+     */
+    private static void moveUntilEnd(BufferedImage image, HarrisFast.Corner corner) {
+
+        int rasterSize = 4;
+        double lum = 25.0;
+
+        int rasterOffset = (int) Math.floor(rasterSize / 2);
+        int x = corner.x - rasterOffset;
+        int y = corner.y - rasterOffset;
+
+        int[] xS = new int[rasterSize];
+        int[] yS = new int[rasterSize];
+        // Fill arrays with 0
+        Arrays.fill(xS, 0);
+        Arrays.fill(yS, 0);
+        // collect x positions
+        for (int j = 0; j < rasterSize && j + y < image.getHeight(); j++) {
+            for (int i = 0; i < rasterSize && i + x < image.getWidth(); i++) {
+                // if X on line Y is "black" and pixel before is also "black" (or no marking yet made)
+                // add pixel in line
+                if (getLuminance(image.getRGB(i + x, j + y)) < lum && (xS[j] == 0 || getLuminance(image.getRGB(i + x - 1, j + y)) < lum)) {
+                    xS[j]++;
+                }
+                // if Y on line X is "black" and pixel before is also "black" (or no marking yet made)
+                // add pixel in line
+                if (getLuminance(image.getRGB(i + x, j + y)) < lum && (yS[i] == 0 || getLuminance(image.getRGB(i + x, j - 1 + y)) < lum)) {
+                    yS[i]++;
+                }
+            }
+        }
+        int xMax = 0;
+        int yMax = 0;
+        int yOffset = -1;
+        int xOffset = -1;
+        for (int i = 0; i < rasterSize; i++) {
+            if (xS[i] > xMax) {
+                xMax = xS[i];
+                yOffset = i;
+            }
+            if (yS[i] > yMax) {
+                yMax = yS[i];
+                xOffset = i;
+            }
+        }
+        // cancel positioning if we have a point on a "helper" line
+        if (yOffset == -1 && xOffset == -1) return;
+
+        // Update corner position
+        corner.x = xOffset + x;
+        corner.y = yOffset + y;
+
     }
 
     /**
@@ -240,6 +327,7 @@ public class ImageToLines {
 
     /**
      * Get the luminance value for given rgb value
+     *
      * @param rgb RGB value to get luminance for
      * @return Luminance
      */
@@ -253,6 +341,7 @@ public class ImageToLines {
 
     /**
      * Get the luminance value for given rgb value
+     *
      * @param r Red value
      * @param g Green value
      * @param b Blue value
@@ -264,6 +353,7 @@ public class ImageToLines {
 
     /**
      * Encode image to a Base64 string.
+     *
      * @param image Image to encode
      * @return encoded image
      */
@@ -282,4 +372,5 @@ public class ImageToLines {
         }
         return encodedImage;
     }
+
 }
