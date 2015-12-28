@@ -7,6 +7,8 @@ import com.google.gwt.canvas.dom.client.Context2d;
  */
 public class DrawUtil {
 
+    public static final double FULL_CIRCLE = 2 * Math.PI;
+
     public static void drawGrid(Context2d g, int width, int height, String bg) {
         int stepSize = 20;
 

@@ -24,6 +24,7 @@ import org.percepta.mgrankvi.ImageToLines;
 import org.percepta.mgrankvi.VisibilityMap;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
+import org.percepta.mgrankvi.paintables.Dot;
 
 import javax.servlet.annotation.WebServlet;
 import java.io.File;
@@ -53,7 +54,7 @@ public class DemoUI extends UI {
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
-    Point p1, p2, p3;
+    Dot p1, p2, p3, pGm1, pGm2, pGm3;
     final Random rand = new Random(System.currentTimeMillis());
 
     @Override
@@ -73,30 +74,33 @@ public class DemoUI extends UI {
             }
         });
 
-        p1 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
-        p2 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
-        p3 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
-        map.addHidden(p1);
-        map.addHidden(p2);
-        map.addHidden(p3);
-        mapGm.addHidden(p1);
-        mapGm.addHidden(p2);
-        mapGm.addHidden(p3);
+        p1 = new Dot(2, new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+        p2 = new Dot(2, new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+        p3 = new Dot(2, new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+        pGm1 = new Dot(2, p1.getPosition());
+        pGm2 = new Dot(2, p1.getPosition());
+        pGm3 = new Dot(2, p1.getPosition());
+        map.addComponent(p1);
+        map.addComponent(p2);
+        map.addComponent(p3);
+        mapGm.addComponent(pGm1);
+        mapGm.addComponent(pGm2);
+        mapGm.addComponent(pGm3);
 
         Button random = new Button("Random", new Button.ClickListener() {
             @Override
             public void buttonClick(Button.ClickEvent clickEvent) {
-                map.clearHidden();
+//                map.clearHidden();
 
-                p1 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
-                p2 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
-                p3 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
-                map.addHidden(p1);
-                map.addHidden(p2);
-                map.addHidden(p3);
-                mapGm.addHidden(p1);
-                mapGm.addHidden(p2);
-                mapGm.addHidden(p3);
+                p1.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+                p2.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+                p3.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+//                map.addHidden(p1);
+//                map.addHidden(p2);
+//                map.addHidden(p3);
+//                mapGm.addHidden(p1);
+//                mapGm.addHidden(p2);
+//                mapGm.addHidden(p3);
             }
         });
         Button clear = new Button("Clear", new Button.ClickListener() {
@@ -168,7 +172,7 @@ public class DemoUI extends UI {
                 if (add) {
                     DemoUI.this.map.addLines(lines);
                     DemoUI.this.mapGm.addLines(lines);
-                }else {
+                } else {
                     DemoUI.this.map.setLines(lines);
                     DemoUI.this.mapGm.setLines(lines);
                 }
@@ -181,25 +185,31 @@ public class DemoUI extends UI {
         getUI().access(new Runnable() {
             @Override
             public void run() {
-                map.clearHidden();
-                mapGm.clearHidden();
+//                map.clearHidden();
+//                mapGm.clearHidden();
                 int x = rand.nextInt() % 2;
                 int y = rand.nextInt() % 2;
-                p1 = new Point(nextX(x, p1), nextY(y, p1));
+                p1.setPosition(new Point(nextX(x, p1.getPosition()), nextY(y, p1.getPosition())));
 
                 x = rand.nextInt() % 2;
                 y = rand.nextInt() % 2;
-                p2 = new Point(nextX(x, p2), nextY(y, p2));
+                p2.setPosition(new Point(nextX(x, p2.getPosition()), nextY(y, p2.getPosition())));
 
                 x = rand.nextInt() % 2;
                 y = rand.nextInt() % 2;
-                p3 = new Point(nextX(x, p3), nextY(y, p3));
-                map.addHidden(p1);
-                map.addHidden(p2);
-                map.addHidden(p3);
-                mapGm.addHidden(p1);
-                mapGm.addHidden(p2);
-                mapGm.addHidden(p3);
+                p3.setPosition(new Point(nextX(x, p3.getPosition()), nextY(y, p3.getPosition())));
+
+                pGm1.setPosition(p1.getPosition());
+                pGm2.setPosition(p2.getPosition());
+                pGm3.setPosition(p3.getPosition());
+//                map.addHidden(p1);
+//                map.addHidden(p2);
+//                map.addHidden(p3);
+//                mapGm.addHidden(p1);
+//                mapGm.addHidden(p2);
+//                mapGm.addHidden(p3);
+                map.update();
+                mapGm.update();
             }
         });
     }

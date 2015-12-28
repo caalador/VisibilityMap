@@ -14,6 +14,7 @@ import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
+import com.google.gwt.user.client.ui.Widget;
 import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
 import org.percepta.mgrankvi.client.geometry.Direction;
@@ -21,7 +22,9 @@ import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 import org.percepta.mgrankvi.client.utils.DrawUtil;
+import org.percepta.mgrankvi.client.paintable.Paintable;
 
+import java.awt.Paint;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -34,7 +37,6 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     private static final int HEIGHT = 360;
 
     public static final int DOT_RADIUS = 2;
-    public static final double FULL_CIRCLE = 2 * Math.PI;
     public int UPDATE_SPEED = 10;
 
     private Timer updateTimer;
@@ -57,10 +59,10 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     int fuzzyRadius = 5;
     int sightPoints = 5;
 
-    double multipointStep = FULL_CIRCLE / sightPoints;
+    double multipointStep = DrawUtil.FULL_CIRCLE / sightPoints;
     Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
 
-    List<Point> hidden = new LinkedList<Point>();
+    List<Paintable> hidden = new LinkedList<Paintable>();
     List<Line> lines = new LinkedList<Line>();
     private final List<Line> borderLines = new LinkedList<Line>() {{
         // Border
@@ -143,7 +145,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
                 if (multipoint) {
                     // If using multiple points around center collect all intersections for points @ angle+distance
-                    for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+                    for (double angle = 0; angle < DrawUtil.FULL_CIRCLE; angle += multipointStep) {
                         Direction d = getAngleDirections(angle);
                         intersects.add(Calculations.getSightPolygons(x + d.dx, y + d.dy, lines));
                     }
@@ -161,7 +163,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
                 paintHidden(context);
                 context.restore();
             } else {
-                context.setFillStyle("hsla(60,100%,75%,0.5)");
+                context.setFillStyle("hsla(60,60%,30%,0.3)");
                 context.beginPath();
                 context.rect(0,0,WIDTH,HEIGHT);
                 context.closePath();
@@ -175,10 +177,10 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
             context.arc(x, y, DOT_RADIUS, 0, 2 * Math.PI, false);
             context.fill();
             if (multipoint) {
-                for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+                for (double angle = 0; angle < DrawUtil.FULL_CIRCLE; angle += multipointStep) {
                     Direction d = getAngleDirections(angle);
                     context.beginPath();
-                    context.arc(x + d.dx, y + d.dy, DOT_RADIUS, 0, FULL_CIRCLE, false);
+                    context.arc(x + d.dx, y + d.dy, DOT_RADIUS, 0, DrawUtil.FULL_CIRCLE, false);
                     context.closePath();
                     context.fill();
                 }
@@ -190,11 +192,12 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     private void paintHidden(Context2d context) {
         context.setFillStyle("#000");
-        for (Point p : hidden) {
-            context.beginPath();
-            context.arc(p.getX(), p.getY(), 5, 0, FULL_CIRCLE, false);
-            context.closePath();
-            context.fill();
+        for (Paintable p : hidden) {
+            p.paint(context);
+//            context.beginPath();
+//            context.arc(p.getX(), p.getY(), 5, 0, FULL_CIRCLE, false);
+//            context.closePath();
+//            context.fill();
         }
     }
 
@@ -245,7 +248,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
                 while (intersect.hasNext()) {
                     Point p = intersect.next().getIntersectionPoint();
                     context.beginPath();
-                    context.arc(p.getX(), p.getY(), 3, 0, FULL_CIRCLE, false);
+                    context.arc(p.getX(), p.getY(), 3, 0, DrawUtil.FULL_CIRCLE, false);
                     context.closePath();
                     context.fill();
                 }
@@ -325,7 +328,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     private double getDistanceToClosestWall(int vX, int vY) {
         double distance = Double.MAX_VALUE;
         if (multipoint) {
-            for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+            for (double angle = 0; angle < DrawUtil.FULL_CIRCLE; angle += multipointStep) {
                 Direction d = getAngleDirections(angle);
                 double centerX = x + d.dx;
                 double centerY = y + d.dy;
@@ -452,21 +455,31 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     public void setSightPoints(int sightPoints) {
         this.sightPoints = sightPoints;
-        multipointStep = FULL_CIRCLE / sightPoints;
+        multipointStep = DrawUtil.FULL_CIRCLE / sightPoints;
         paint();
     }
 
-    public void setHidden(List<Point> hidden) {
-        List<Point> clear = new LinkedList<Point>();
+//    public void setHidden(List<Paintable> hidden) {
+//        List<Paintable> clear = new LinkedList<Paintable>();
+//
+//        for (Paintable point : this.hidden) {
+//            if (!hidden.contains(point)) {
+//                clear.add(point);
+//            }
+//        }
+//        this.hidden.removeAll(clear);
+//        this.hidden.addAll(hidden);
+//        paint();
+//    }
 
-        for (Point point : this.hidden) {
-            if (!hidden.contains(point)) {
-                clear.add(point);
-            }
+    public void clearHidden() {
+        hidden.clear();
+    }
+
+    public void addHidden(Widget paintable) {
+        if(paintable instanceof Paintable) {
+            hidden.add((Paintable)paintable);
         }
-        this.hidden.removeAll(clear);
-        this.hidden.addAll(hidden);
-        paint();
     }
 
     public void setDrawLines(boolean drawLines) {

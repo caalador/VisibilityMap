@@ -1,22 +1,27 @@
 package org.percepta.mgrankvi;
 
+import com.google.gwt.thirdparty.guava.common.collect.Lists;
+import com.vaadin.ui.AbstractComponentContainer;
 import com.vaadin.ui.Component;
-import org.percepta.mgrankvi.client.MyComponentClientRpc;
-import org.percepta.mgrankvi.client.MyComponentServerRpc;
+import com.vaadin.ui.HasComponents;
+import org.percepta.mgrankvi.client.MapClientRpc;
+import org.percepta.mgrankvi.client.MapServerRpc;
 import org.percepta.mgrankvi.client.VisibilityMapState;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 // This is the server-side UI component that provides public API 
 // for MyComponent
-public class VisibilityMap extends com.vaadin.ui.AbstractComponent {
+public class VisibilityMap extends AbstractComponentContainer implements HasComponents {
 
     // To process events from the client, we implement ServerRpc
-    private MyComponentServerRpc rpc = new MyComponentServerRpc() {
+    private MapServerRpc rpc = new MapServerRpc() {
 
         @Override
         public void moved(Point point) {
@@ -41,7 +46,7 @@ public class VisibilityMap extends com.vaadin.ui.AbstractComponent {
     }
 
     public void setPoint(Point position) {
-        getRpcProxy(MyComponentClientRpc.class).updatePosition(position);
+        getRpcProxy(MapClientRpc.class).updatePosition(position);
     }
 
     public void addLines(List<Line> lines) {
@@ -80,12 +85,16 @@ public class VisibilityMap extends com.vaadin.ui.AbstractComponent {
         return getState().sightPoints;
     }
 
-    public void addHidden(Point hidden) {
-        getState().hidden.add(hidden);
-    }
+//    public void addHidden(Point hidden) {
+//        getState().hidden.add(hidden);
+//    }
+//
+//    public void clearHidden() {
+//        getState().hidden.clear();
+//    }
 
-    public void clearHidden() {
-        getState().hidden.clear();
+    public void update() {
+        getRpcProxy(MapClientRpc.class).paint();
     }
 
     public void setDrawLines(boolean draw) {
@@ -165,6 +174,45 @@ public class VisibilityMap extends com.vaadin.ui.AbstractComponent {
      */
     public void fireChangeEvent(Point point) {
         fireEvent(new PositionChangeEvent(this, point));
+    }
+
+    List<Component> children = Lists.newLinkedList();
+
+
+    @Override
+    public void addComponent(final Component c) {
+        children.add(c);
+        super.addComponent(c);
+        markAsDirty();
+    }
+
+    @Override
+    public void removeComponent(final Component c) {
+        children.remove(c);
+        super.removeComponent(c);
+        markAsDirty();
+    }
+
+    @Override
+    public void replaceComponent(final Component oldComponent, final Component newComponent) {
+        final int index = children.indexOf(oldComponent);
+        if (index != -1) {
+            children.remove(index);
+            children.add(index, newComponent);
+            fireComponentDetachEvent(oldComponent);
+            fireComponentAttachEvent(newComponent);
+            markAsDirty();
+        }
+    }
+
+    @Override
+    public int getComponentCount() {
+        return children.size();
+    }
+
+    @Override
+    public Iterator<Component> iterator() {
+        return children.iterator();
     }
 }
 
