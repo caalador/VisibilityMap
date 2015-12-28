@@ -17,6 +17,7 @@ import com.vaadin.ui.HorizontalLayout;
 import com.vaadin.ui.Image;
 import com.vaadin.ui.NativeSelect;
 import com.vaadin.ui.Panel;
+import com.vaadin.ui.PopupView;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
 import com.vaadin.ui.VerticalLayout;
@@ -90,17 +91,9 @@ public class DemoUI extends UI {
         Button random = new Button("Random", new Button.ClickListener() {
             @Override
             public void buttonClick(Button.ClickEvent clickEvent) {
-//                map.clearHidden();
-
                 p1.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
                 p2.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
                 p3.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
-//                map.addHidden(p1);
-//                map.addHidden(p2);
-//                map.addHidden(p3);
-//                mapGm.addHidden(p1);
-//                mapGm.addHidden(p2);
-//                mapGm.addHidden(p3);
             }
         });
         Button clear = new Button("Clear", new Button.ClickListener() {
@@ -131,7 +124,7 @@ public class DemoUI extends UI {
         p.setContent(imageLayout);
         p.setWidth("100%");
         p.setHeight("400px");
-        imageLayout.addComponent(getMap("Full Map", "/Users/Mikael/Desktop/dungeon/Dungeon2.png", false));// "/org/percepta/mgrankvi/demo/Dungeon.png", false));
+        imageLayout.addComponent(getMap("Full Map", "/org/percepta/mgrankvi/demo/Dungeon.png", false));
         imageLayout.addComponent(getMap("Base", "/org/percepta/mgrankvi/demo/dungeon/Base.png", false));
         imageLayout.addComponent(getMap("Divider 1", "/org/percepta/mgrankvi/demo/dungeon/divider1.png", true));
         imageLayout.addComponent(getMap("Divider 2", "/org/percepta/mgrankvi/demo/dungeon/divider2.png", true));
@@ -139,7 +132,9 @@ public class DemoUI extends UI {
         imageLayout.addComponent(getMap("Divider 4", "/org/percepta/mgrankvi/demo/dungeon/divider4.png", true));
         imageLayout.addComponent(getMap("Divider 5", "/org/percepta/mgrankvi/demo/dungeon/divider5.png", true));
         imageLayout.addComponent(getMap("Divider 6", "/org/percepta/mgrankvi/demo/dungeon/divider6.png", true));
-        layout.addComponent(p);
+
+        PopupView mapsPopup = new PopupView("Maps", p);
+        layout.addComponent(mapsPopup);
         setContent(layout);
 
         final Timer timer = new Timer();
@@ -185,8 +180,6 @@ public class DemoUI extends UI {
         getUI().access(new Runnable() {
             @Override
             public void run() {
-//                map.clearHidden();
-//                mapGm.clearHidden();
                 int x = rand.nextInt() % 2;
                 int y = rand.nextInt() % 2;
                 p1.setPosition(new Point(nextX(x, p1.getPosition()), nextY(y, p1.getPosition())));
@@ -202,12 +195,7 @@ public class DemoUI extends UI {
                 pGm1.setPosition(p1.getPosition());
                 pGm2.setPosition(p2.getPosition());
                 pGm3.setPosition(p3.getPosition());
-//                map.addHidden(p1);
-//                map.addHidden(p2);
-//                map.addHidden(p3);
-//                mapGm.addHidden(p1);
-//                mapGm.addHidden(p2);
-//                mapGm.addHidden(p3);
+
                 map.update();
                 mapGm.update();
             }
