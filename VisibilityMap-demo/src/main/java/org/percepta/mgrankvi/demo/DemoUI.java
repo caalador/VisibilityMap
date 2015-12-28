@@ -44,12 +44,12 @@ public class DemoUI extends UI {
     public static class Servlet extends VaadinServlet {
     }
 
-    private CheckBox multipoint, debug, drawLines;
+    private CheckBox multipoint, debug, drawLines, gm;
     private TextField fuzzy, amount;
 
     // Initialize our new UI map
     private VisibilityMap map;
-
+    private VisibilityMap mapGm;
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
@@ -60,14 +60,28 @@ public class DemoUI extends UI {
     protected void init(VaadinRequest request) {
 
         map = new VisibilityMap();
+        mapGm = new VisibilityMap();
+        mapGm.setGmMode(true);
+
         init();
         addLines(map);
+        addLines(mapGm);
+        map.addPositionChangeListener(new VisibilityMap.PositionChangeListener() {
+            @Override
+            public void positionChanged(VisibilityMap.PositionChangeEvent event) {
+                mapGm.setPoint(event.getPoint());
+            }
+        });
+
         p1 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
         p2 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
         p3 = new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT));
         map.addHidden(p1);
         map.addHidden(p2);
         map.addHidden(p3);
+        mapGm.addHidden(p1);
+        mapGm.addHidden(p2);
+        mapGm.addHidden(p3);
 
         Button random = new Button("Random", new Button.ClickListener() {
             @Override
@@ -80,6 +94,9 @@ public class DemoUI extends UI {
                 map.addHidden(p1);
                 map.addHidden(p2);
                 map.addHidden(p3);
+                mapGm.addHidden(p1);
+                mapGm.addHidden(p2);
+                mapGm.addHidden(p3);
             }
         });
         Button clear = new Button("Clear", new Button.ClickListener() {
@@ -92,23 +109,25 @@ public class DemoUI extends UI {
         // Show it in the middle of the screen
         final VerticalLayout layout = new VerticalLayout();
 
-        Image fullMap = getMap("Full Map", "/org/percepta/mgrankvi/demo/Dungeon.png", false);
-
-        HorizontalLayout hl = new HorizontalLayout(fuzzy, amount, multipoint, debug, drawLines, random, clear);
+        HorizontalLayout hl = new HorizontalLayout(fuzzy, amount, multipoint, debug, drawLines, gm, random, clear);
         hl.setSpacing(true);
         layout.addComponent(hl);
 
         layout.setStyleName("demoContentLayout");
         layout.setSizeFull();
-        layout.addComponent(map);
-        layout.setComponentAlignment(map, Alignment.MIDDLE_CENTER);
-        layout.setExpandRatio(map, 1f);
+        HorizontalLayout maps = new HorizontalLayout();
+        maps.addComponent(map);
+        maps.addComponent(mapGm);
+
+        layout.addComponent(maps);
+        layout.setComponentAlignment(maps, Alignment.MIDDLE_CENTER);
+        layout.setExpandRatio(maps, 1f);
         Panel p = new Panel();
         VerticalLayout imageLayout = new VerticalLayout();
         p.setContent(imageLayout);
         p.setWidth("100%");
         p.setHeight("400px");
-        imageLayout.addComponent(fullMap);
+        imageLayout.addComponent(getMap("Full Map", "/Users/Mikael/Desktop/dungeon/Dungeon2.png", false));// "/org/percepta/mgrankvi/demo/Dungeon.png", false));
         imageLayout.addComponent(getMap("Base", "/org/percepta/mgrankvi/demo/dungeon/Base.png", false));
         imageLayout.addComponent(getMap("Divider 1", "/org/percepta/mgrankvi/demo/dungeon/divider1.png", true));
         imageLayout.addComponent(getMap("Divider 2", "/org/percepta/mgrankvi/demo/dungeon/divider2.png", true));
@@ -136,20 +155,23 @@ public class DemoUI extends UI {
 
     private Image getMap(String caption, final String file, final boolean add) {
         File sourceFile;
-        if(getClass().getResource(file) != null) {
-            sourceFile =new File(getClass().getResource(file).getFile());
-        }
-        else {
+        if (getClass().getResource(file) != null) {
+            sourceFile = new File(getClass().getResource(file).getFile());
+        } else {
             sourceFile = new File(file);
         }
         Image map = new Image(caption, new FileResource(sourceFile));
         map.addClickListener(new MouseEvents.ClickListener() {
             @Override
             public void click(MouseEvents.ClickEvent clickEvent) {
-                if (add)
-                    DemoUI.this.map.addLines(new ImageToLines().getLines(file));
-                else
-                    DemoUI.this.map.setLines(new ImageToLines().getLines(file));
+                List<Line> lines = new ImageToLines().getLines(file);
+                if (add) {
+                    DemoUI.this.map.addLines(lines);
+                    DemoUI.this.mapGm.addLines(lines);
+                }else {
+                    DemoUI.this.map.setLines(lines);
+                    DemoUI.this.mapGm.setLines(lines);
+                }
             }
         });
         return map;
@@ -160,6 +182,7 @@ public class DemoUI extends UI {
             @Override
             public void run() {
                 map.clearHidden();
+                mapGm.clearHidden();
                 int x = rand.nextInt() % 2;
                 int y = rand.nextInt() % 2;
                 p1 = new Point(nextX(x, p1), nextY(y, p1));
@@ -174,6 +197,9 @@ public class DemoUI extends UI {
                 map.addHidden(p1);
                 map.addHidden(p2);
                 map.addHidden(p3);
+                mapGm.addHidden(p1);
+                mapGm.addHidden(p2);
+                mapGm.addHidden(p3);
             }
         });
     }
@@ -196,6 +222,7 @@ public class DemoUI extends UI {
         multipoint = newCheckBox("MultiPoint", map.isMultiselect());
         debug = newCheckBox("debug", map.isDebug());
         drawLines = newCheckBox("Draw hidden Lines", map.isDrawLines());
+        gm = newCheckBox("GameMaster", map.isGmMode());
 
         fuzzy = newTextField("Fuzzy radius", "" + map.getFuzzyRadius());
         amount = newTextField("Sight points", "" + map.getSightPoints());
@@ -217,6 +244,12 @@ public class DemoUI extends UI {
             @Override
             public void valueChange(Property.ValueChangeEvent event) {
                 map.setDrawLines(drawLines.getValue());
+            }
+        });
+        gm.addValueChangeListener(new Property.ValueChangeListener() {
+            @Override
+            public void valueChange(Property.ValueChangeEvent event) {
+                map.setGmMode(gm.getValue());
             }
         });
 

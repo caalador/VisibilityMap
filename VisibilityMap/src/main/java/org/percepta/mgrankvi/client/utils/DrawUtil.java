@@ -7,11 +7,11 @@ import com.google.gwt.canvas.dom.client.Context2d;
  */
 public class DrawUtil {
 
-    public static void drawGrid(Context2d g, int width, int height) {
+    public static void drawGrid(Context2d g, int width, int height, String bg) {
         int stepSize = 20;
 
         // Background
-        g.setFillStyle("hsl(210, 50%, 25%)");
+        g.setFillStyle(bg);
         g.fillRect(0, 0, width + 1, height + 1);
 
         // Draw the grid on the left side

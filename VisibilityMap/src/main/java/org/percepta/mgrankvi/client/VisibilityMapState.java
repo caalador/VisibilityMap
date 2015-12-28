@@ -21,5 +21,5 @@ public class VisibilityMapState extends com.vaadin.shared.AbstractComponentState
 	public int fuzzyRadius = 5;
 	public int sightPoints = 5;
 
-    public boolean change = false;
+    public boolean gmMode = false;
 }

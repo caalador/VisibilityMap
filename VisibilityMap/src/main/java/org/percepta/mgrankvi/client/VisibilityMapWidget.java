@@ -47,9 +47,12 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     boolean left = false;
     boolean right = false;
 
+    List<MoveHandler> moveListener = new LinkedList<MoveHandler>();
+
     Canvas map, bg;
     boolean multipoint = false;
     boolean enableDebugPoints = false;
+    boolean gmMode = false;
 
     int fuzzyRadius = 5;
     int sightPoints = 5;
@@ -89,7 +92,11 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
             bg.setHeight(HEIGHT + "px");
             bg.setCoordinateSpaceWidth(WIDTH);
             bg.setCoordinateSpaceHeight(HEIGHT);
-            DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT);
+            if (gmMode) {
+                DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT, "hsl(210, 50%, 75%)");
+            } else {
+                DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT, "hsl(210, 50%, 25%)");
+            }
 
 
             map.setWidth(WIDTH + "px");
@@ -108,14 +115,14 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     boolean painting = false;
 
-    private void paint() {
+    protected void paint() {
         if (painting) return;
         painting = true;
         try {
             clearCanvas();
             Context2d context = map.getContext2d();
 
-            if (drawLines) {
+            if (drawLines || gmMode) {
                 // Segment lines
                 context.setStrokeStyle("#999");
                 for (Line l : lines) {
@@ -128,37 +135,39 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
             }
 
-            List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
+            if (!gmMode) {
+                List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
 
-            // Collect all intersection points from position x,y
-            intersects.add(Calculations.getSightPolygons(x, y, lines));
+                // Collect all intersection points from position x,y
+                intersects.add(Calculations.getSightPolygons(x, y, lines));
 
-            if (multipoint) {
-                // If using multiple points around center collect all intersections for points @ angle+distance
-                for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
-                    Direction d = getAngleDirections(angle);
-                    intersects.add(Calculations.getSightPolygons(x + d.dx, y + d.dy, lines));
+                if (multipoint) {
+                    // If using multiple points around center collect all intersections for points @ angle+distance
+                    for (double angle = 0; angle < FULL_CIRCLE; angle += multipointStep) {
+                        Direction d = getAngleDirections(angle);
+                        intersects.add(Calculations.getSightPolygons(x + d.dx, y + d.dy, lines));
+                    }
                 }
-            }
-            // Draw our visibility polygon(s)
-            drawPolygons(context, intersects);
+                // Draw our visibility polygon(s)
+                drawPolygons(context, intersects);
 
-            // Using intersection points draw visible wall parts.
-            drawVisibleWallSegments(context, intersects);
+                // Using intersection points draw visible wall parts.
+                drawVisibleWallSegments(context, intersects);
 
-            // Draw hidden content that only shows when inside a visibility polygon
-            context.save();
-            context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
+                // Draw hidden content that only shows when inside a visibility polygon
+                context.save();
+                context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
 
-            context.setFillStyle("#000");
-            for (Point p : hidden) {
+                paintHidden(context);
+                context.restore();
+            } else {
+                context.setFillStyle("hsla(60,100%,75%,0.5)");
                 context.beginPath();
-                context.arc(p.getX(), p.getY(), DOT_RADIUS, 0, FULL_CIRCLE, false);
+                context.rect(0,0,WIDTH,HEIGHT);
                 context.closePath();
                 context.fill();
+                paintHidden(context);
             }
-            context.restore();
-//        context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_OVER);
 
             // Draw red dots for center position of sight cones.
             context.setFillStyle("#dd3838");
@@ -176,6 +185,16 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
             }
         } finally {
             painting = false;
+        }
+    }
+
+    private void paintHidden(Context2d context) {
+        context.setFillStyle("#000");
+        for (Point p : hidden) {
+            context.beginPath();
+            context.arc(p.getX(), p.getY(), 5, 0, FULL_CIRCLE, false);
+            context.closePath();
+            context.fill();
         }
     }
 
@@ -273,9 +292,12 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     @Override
     public void onMouseMove(MouseMoveEvent event) {
+        if (gmMode) return;
+
         x = event.getRelativeX(map.getElement());
         y = event.getRelativeY(map.getElement());
         paint();
+        move(new Point(x, y));
     }
 
     private int touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
@@ -297,6 +319,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
             }
         }
         paint();
+        move(new Point(x, y));
     }
 
     private double getDistanceToClosestWall(int vX, int vY) {
@@ -339,6 +362,8 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     @Override
     public void onKeyDown(KeyDownEvent event) {
+        if (gmMode) return;
+
         if (updateTimer == null) {
             updateTimer = new Timer() {
 
@@ -369,6 +394,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     @Override
     public void onKeyUp(KeyUpEvent event) {
+        if (gmMode) return;
 
         switch (event.getNativeKeyCode()) {
             case KeyboardEvent.KeyCode.DOWN:
@@ -445,5 +471,19 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     public void setDrawLines(boolean drawLines) {
         this.drawLines = drawLines;
+    }
+
+    public void setGmMode(boolean gmMode) {
+        this.gmMode = gmMode;
+    }
+
+    public void addMoveHandler(MoveHandler moveHandler) {
+        moveListener.add(moveHandler);
+    }
+
+    private void move(Point point) {
+        for (MoveHandler handler : moveListener) {
+            handler.move(point);
+        }
     }
 }

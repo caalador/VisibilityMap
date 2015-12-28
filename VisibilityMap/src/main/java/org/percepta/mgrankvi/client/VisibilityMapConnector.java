@@ -1,6 +1,5 @@
 package org.percepta.mgrankvi.client;
 
-import com.google.gwt.user.client.Window;
 import com.vaadin.client.VConsole;
 import com.vaadin.client.annotations.OnStateChange;
 import com.vaadin.client.communication.RpcProxy;
@@ -8,6 +7,7 @@ import com.vaadin.client.communication.StateChangeEvent;
 import com.vaadin.client.ui.AbstractComponentConnector;
 import com.vaadin.shared.ui.Connect;
 import org.percepta.mgrankvi.VisibilityMap;
+import org.percepta.mgrankvi.client.geometry.Point;
 
 // Connector binds client-side widget class to server-side component class
 // Connector lives in the client and the @Connect annotation specifies the
@@ -23,22 +23,23 @@ public class VisibilityMapConnector extends AbstractComponentConnector {
 
         // To receive RPC events from server, we register ClientRpc implementation
         registerRpc(MyComponentClientRpc.class, new MyComponentClientRpc() {
-            public void alert(String message) {
-                Window.alert(message);
+
+            @Override
+            public void updatePosition(Point position) {
+                getWidget().x = (int) position.getX();
+                getWidget().y = (int) position.getY();
+                getWidget().paint();
             }
+
         });
 
-        // We choose listed for mouse clicks for the widget
-//		getWidget().addClickHandler(new ClickHandler() {
-//			public void onClick(ClickEvent event) {
-//				final MouseEventDetails mouseDetails = MouseEventDetailsBuilder
-//						.buildMouseEventDetails(event.getNativeEvent(),
-//								getWidget().getElement());
-//
-//				// When the widget is clicked, the event is sent to server with ServerRpc
-//				rpc.clicked(mouseDetails);
-//			}
-//		});
+        getWidget().addMoveHandler(new MoveHandler(){
+
+            @Override
+            public void move(Point point) {
+                rpc.moved(point);
+            }
+        });
 
     }
 
@@ -83,5 +84,10 @@ public class VisibilityMapConnector extends AbstractComponentConnector {
     @OnStateChange("drawLines")
     void drawLines() {
         getWidget().setDrawLines(getState().drawLines);
+    }
+
+    @OnStateChange("gmMode")
+    void gmMmode() {
+        getWidget().setGmMode(getState().gmMode);
     }
 }
