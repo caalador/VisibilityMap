@@ -4,8 +4,12 @@ import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.dom.client.Document;
 import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.client.VConsole;
+import org.percepta.mgrankvi.client.MoveHandler;
 import org.percepta.mgrankvi.client.geometry.Point;
 import org.percepta.mgrankvi.client.utils.DrawUtil;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author Mikael Grankvist - Vaadin }>
@@ -53,5 +57,20 @@ public class Dot extends Widget implements Paintable, Movable {
     public void movePosition(int x, int y) {
         position.x = x;
         position.y = y;
+        move(position);
+    }
+
+    List<MoveHandler> moveListener = new LinkedList<MoveHandler>();
+
+    @Override
+    public void addMoveHandler(MoveHandler moveHandler) {
+        moveListener.add(moveHandler);
+    }
+
+    @Override
+    public void move(Point point) {
+        for (MoveHandler handler : moveListener) {
+            handler.move(point);
+        }
     }
 }

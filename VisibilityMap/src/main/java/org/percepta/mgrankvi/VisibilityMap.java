@@ -183,7 +183,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
     public void addComponent(final Component c) {
         children.add(c);
         super.addComponent(c);
-        markAsDirty();
+        update();
     }
 
     @Override
@@ -191,6 +191,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         children.remove(c);
         super.removeComponent(c);
         markAsDirty();
+        update();
     }
 
     @Override
@@ -201,7 +202,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
             children.add(index, newComponent);
             fireComponentDetachEvent(oldComponent);
             fireComponentAttachEvent(newComponent);
-            markAsDirty();
+            update();
         }
     }
 

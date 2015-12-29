@@ -1,17 +1,19 @@
-package org.percepta.mgrankvi.paintables;
+package org.percepta.mgrankvi.item;
 
-import com.vaadin.ui.AbstractComponent;
 import org.percepta.mgrankvi.client.geometry.Point;
 import org.percepta.mgrankvi.client.items.DotState;
 
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
-public class Dot extends AbstractComponent {
+public class Dot extends MovableItem {
 
-    public Dot() {}
+    public Dot() {
+        super();
+    }
 
     public Dot(int size, Point position) {
+        super();
         getState().size = size;
         getState().position = position;
     }
