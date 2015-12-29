@@ -8,8 +8,15 @@ import com.google.gwt.event.dom.client.KeyDownEvent;
 import com.google.gwt.event.dom.client.KeyDownHandler;
 import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.event.dom.client.MouseDownEvent;
+import com.google.gwt.event.dom.client.MouseDownHandler;
 import com.google.gwt.event.dom.client.MouseMoveEvent;
 import com.google.gwt.event.dom.client.MouseMoveHandler;
+import com.google.gwt.event.dom.client.MouseOutEvent;
+import com.google.gwt.event.dom.client.MouseOutHandler;
+import com.google.gwt.event.dom.client.MouseUpEvent;
+import com.google.gwt.event.dom.client.MouseUpHandler;
+import com.google.gwt.event.shared.HandlerRegistration;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
@@ -21,17 +28,19 @@ import org.percepta.mgrankvi.client.geometry.Direction;
 import org.percepta.mgrankvi.client.geometry.Intersect;
 import org.percepta.mgrankvi.client.geometry.Line;
 import org.percepta.mgrankvi.client.geometry.Point;
+import org.percepta.mgrankvi.client.items.Movable;
+import org.percepta.mgrankvi.client.items.Paintable;
 import org.percepta.mgrankvi.client.utils.DrawUtil;
-import org.percepta.mgrankvi.client.paintable.Paintable;
 
-import java.awt.Paint;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-public class VisibilityMapWidget extends Composite implements MouseMoveHandler, KeyDownHandler, KeyUpHandler {
+public class VisibilityMapWidget extends Composite implements MouseDownHandler, MouseUpHandler, MouseMoveHandler, MouseOutHandler, KeyDownHandler, KeyUpHandler {
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
@@ -63,6 +72,10 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
 
     List<Paintable> hidden = new LinkedList<Paintable>();
+    List<Movable> movables = new LinkedList<Movable>();
+
+    Movable selected = null;
+
     List<Line> lines = new LinkedList<Line>();
     private final List<Line> borderLines = new LinkedList<Line>() {{
         // Border
@@ -165,7 +178,7 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
             } else {
                 context.setFillStyle("hsla(60,60%,30%,0.3)");
                 context.beginPath();
-                context.rect(0,0,WIDTH,HEIGHT);
+                context.rect(0, 0, WIDTH, HEIGHT);
                 context.closePath();
                 context.fill();
                 paintHidden(context);
@@ -191,13 +204,13 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
     }
 
     private void paintHidden(Context2d context) {
-        context.setFillStyle("#000");
         for (Paintable p : hidden) {
+            if(p.equals(selected)) {
+                context.setFillStyle("orange");
+            } else {
+                context.setFillStyle("#000");
+            }
             p.paint(context);
-//            context.beginPath();
-//            context.arc(p.getX(), p.getY(), 5, 0, FULL_CIRCLE, false);
-//            context.closePath();
-//            context.fill();
         }
     }
 
@@ -295,12 +308,44 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
 
     @Override
     public void onMouseMove(MouseMoveEvent event) {
-        if (gmMode) return;
+        if (gmMode) {
+            if (selected != null) {
+                selected.movePosition(event.getRelativeX(map.getElement()), event.getRelativeY(map.getElement()));
+                paint();
+            }
+        } else {
+            x = event.getRelativeX(map.getElement());
+            y = event.getRelativeY(map.getElement());
+            paint();
+            move(new Point(x, y));
+        }
+    }
 
-        x = event.getRelativeX(map.getElement());
-        y = event.getRelativeY(map.getElement());
+
+    @Override
+    public void onMouseDown(MouseDownEvent event) {
+        int x = event.getRelativeX(map.getElement());
+        int y = event.getRelativeY(map.getElement());
+
+        for (Movable movable : movables) {
+            if (movable.pointInObject(x, y)) {
+                selected = movable;
+                paint();
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onMouseUp(MouseUpEvent event) {
+        selected = null;
         paint();
-        move(new Point(x, y));
+    }
+
+    @Override
+    public void onMouseOut(MouseOutEvent event) {
+        selected = null;
+        paint();
     }
 
     private int touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
@@ -476,9 +521,12 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         hidden.clear();
     }
 
-    public void addHidden(Widget paintable) {
-        if(paintable instanceof Paintable) {
-            hidden.add((Paintable)paintable);
+    public void addHidden(Widget widget) {
+        if (widget instanceof Paintable) {
+            hidden.add((Paintable) widget);
+        }
+        if (widget instanceof Movable) {
+            movables.add((Movable) widget);
         }
     }
 
@@ -486,8 +534,20 @@ public class VisibilityMapWidget extends Composite implements MouseMoveHandler, 
         this.drawLines = drawLines;
     }
 
+    Set<HandlerRegistration> handlers = new HashSet<HandlerRegistration>();
+
     public void setGmMode(boolean gmMode) {
         this.gmMode = gmMode;
+        if (gmMode) {
+            handlers.add(map.addDomHandler(this, MouseDownEvent.getType()));
+            handlers.add(map.addDomHandler(this, MouseUpEvent.getType()));
+            handlers.add(map.addDomHandler(this, MouseOutEvent.getType()));
+        } else {
+            for (HandlerRegistration handler : handlers) {
+                handler.removeHandler();
+            }
+        }
+
     }
 
     public void addMoveHandler(MoveHandler moveHandler) {

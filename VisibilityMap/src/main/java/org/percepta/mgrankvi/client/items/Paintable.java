@@ -1,4 +1,4 @@
-package org.percepta.mgrankvi.client.paintable;
+package org.percepta.mgrankvi.client.items;
 
 import com.google.gwt.canvas.dom.client.Context2d;
 import com.google.gwt.user.client.ui.Widget;
@@ -6,7 +6,7 @@ import com.google.gwt.user.client.ui.Widget;
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
-public abstract class Paintable extends Widget {
+public interface Paintable  {
 
-    public abstract void paint(Context2d context);
+    void paint(Context2d context);
 }

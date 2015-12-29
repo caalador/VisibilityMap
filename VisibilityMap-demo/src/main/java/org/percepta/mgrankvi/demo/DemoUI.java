@@ -79,8 +79,8 @@ public class DemoUI extends UI {
         p2 = new Dot(2, new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
         p3 = new Dot(2, new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
         pGm1 = new Dot(2, p1.getPosition());
-        pGm2 = new Dot(2, p1.getPosition());
-        pGm3 = new Dot(2, p1.getPosition());
+        pGm2 = new Dot(2, p2.getPosition());
+        pGm3 = new Dot(2, p3.getPosition());
         map.addComponent(p1);
         map.addComponent(p2);
         map.addComponent(p3);
@@ -94,6 +94,7 @@ public class DemoUI extends UI {
                 p1.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
                 p2.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
                 p3.setPosition(new Point(rand.nextInt(WIDTH), rand.nextInt(HEIGHT)));
+                update();
             }
         });
         Button clear = new Button("Clear", new Button.ClickListener() {
@@ -137,19 +138,19 @@ public class DemoUI extends UI {
         layout.addComponent(mapsPopup);
         setContent(layout);
 
-        final Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                update();
-            }
-        }, 1500, 500);
-        getUI().addDetachListener(new DetachListener() {
-            @Override
-            public void detach(DetachEvent detachEvent) {
-                timer.cancel();
-            }
-        });
+//        final Timer timer = new Timer();
+//        timer.scheduleAtFixedRate(new TimerTask() {
+//            @Override
+//            public void run() {
+//                update();
+//            }
+//        }, 1500, 500);
+//        getUI().addDetachListener(new DetachListener() {
+//            @Override
+//            public void detach(DetachEvent detachEvent) {
+//                timer.cancel();
+//            }
+//        });
     }
 
     private Image getMap(String caption, final String file, final boolean add) {

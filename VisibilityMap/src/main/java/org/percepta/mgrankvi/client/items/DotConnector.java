@@ -1,17 +1,15 @@
-package org.percepta.mgrankvi.client.paintable;
+package org.percepta.mgrankvi.client.items;
 
 import com.google.gwt.core.client.GWT;
 import com.google.gwt.user.client.ui.Widget;
-import com.vaadin.client.annotations.OnStateChange;
 import com.vaadin.client.communication.StateChangeEvent;
-import com.vaadin.client.ui.AbstractComponentConnector;
 import com.vaadin.shared.ui.Connect;
 
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
 @Connect(org.percepta.mgrankvi.paintables.Dot.class)
-public class DotConnector extends AbstractComponentConnector {
+public class DotConnector extends MovableConnector {
 
     @Override
     protected Widget createWidget() {
@@ -21,7 +19,7 @@ public class DotConnector extends AbstractComponentConnector {
     @Override
     public Dot getWidget() {
         return (Dot) super.getWidget();
-    };
+    }
 
     @Override
     public DotState getState() {
@@ -35,14 +33,4 @@ public class DotConnector extends AbstractComponentConnector {
         getWidget().setPosition(getState().position);
         getWidget().setSize(getState().size);
     }
-
-//    @OnStateChange("position")
-//    void setPosition() {
-//        getWidget().setPosition(getState().position);
-//    }
-//
-//    @OnStateChange("size")
-//    void setSize() {
-//        getWidget().setSize(getState().size);
-//    }
 }

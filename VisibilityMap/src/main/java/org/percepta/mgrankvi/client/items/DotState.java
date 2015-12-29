@@ -1,4 +1,4 @@
-package org.percepta.mgrankvi.client.paintable;
+package org.percepta.mgrankvi.client.items;
 
 import com.vaadin.shared.AbstractComponentState;
 import org.percepta.mgrankvi.client.geometry.Point;
@@ -9,5 +9,5 @@ import org.percepta.mgrankvi.client.geometry.Point;
 public class DotState extends AbstractComponentState {
 
     public Point position = new Point(0,0);
-    public int size = 2;
+    public int size = 3;
 }

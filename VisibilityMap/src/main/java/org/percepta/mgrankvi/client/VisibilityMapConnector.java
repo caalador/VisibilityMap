@@ -11,7 +11,7 @@ import com.vaadin.client.ui.AbstractHasComponentsConnector;
 import com.vaadin.shared.ui.Connect;
 import org.percepta.mgrankvi.VisibilityMap;
 import org.percepta.mgrankvi.client.geometry.Point;
-import org.percepta.mgrankvi.client.paintable.Paintable;
+import org.percepta.mgrankvi.client.items.Paintable;
 
 import java.util.List;
 
