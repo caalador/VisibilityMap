@@ -10,4 +10,6 @@ public class DotState extends AbstractComponentState {
 
     public Point position = new Point(0,0);
     public int size = 3;
+    public String colour = "#000";
+    public boolean movable = true;
 }

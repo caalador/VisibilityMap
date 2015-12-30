@@ -18,6 +18,8 @@ public class Dot extends Widget implements Paintable, Movable {
 
     int size = 3;
     Point position;
+    private String colour;
+    private boolean movable;
 
 
     public Dot() {
@@ -36,6 +38,7 @@ public class Dot extends Widget implements Paintable, Movable {
     @Override
     public void paint(Context2d context) {
         if (position == null) return;
+        context.setFillStyle(colour);
         context.beginPath();
         context.arc(position.getX(), position.getY(), size, 0, DrawUtil.FULL_CIRCLE, false);
         context.closePath();
@@ -44,6 +47,8 @@ public class Dot extends Widget implements Paintable, Movable {
 
     @Override
     public boolean pointInObject(double x, double y) {
+        // Kill moving of object if not movable so we can't even make a selection.
+        if(!movable) return false;
         return isInsideCircle(x, y);
     }
 
@@ -72,5 +77,19 @@ public class Dot extends Widget implements Paintable, Movable {
         for (MoveHandler handler : moveListener) {
             handler.move(point);
         }
+    }
+
+    @Override
+    public void setColour(String colour) {
+        this.colour = colour;
+    }
+
+    @Override
+    public String getColour() {
+        return colour;
+    }
+
+    public void setMovable(boolean movable) {
+        this.movable = movable;
     }
 }

@@ -50,5 +50,7 @@ public class DotConnector extends AbstractComponentConnector {
 
         getWidget().setPosition(getState().position);
         getWidget().setSize(getState().size);
+        getWidget().setColour(getState().colour);
+        getWidget().setMovable(getState().movable);
     }
 }

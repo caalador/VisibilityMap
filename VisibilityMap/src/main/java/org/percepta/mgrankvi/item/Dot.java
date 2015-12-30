@@ -35,4 +35,19 @@ public class Dot extends MovableItem {
         return getState().position;
     }
 
+    public void setColour(String colour) {
+        getState().colour = colour;
+    }
+
+    public void setMovable(boolean movable) {
+        getState().movable = movable;
+    }
+
+    public int getSize() {
+        return getState().size;
+    }
+
+    public String getColour() {
+        return getState().colour;
+    }
 }

@@ -9,4 +9,8 @@ import com.google.gwt.user.client.ui.Widget;
 public interface Paintable  {
 
     void paint(Context2d context);
+
+    String getColour();
+
+    void setColour(String colour);
 }
