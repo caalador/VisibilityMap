@@ -23,4 +23,5 @@ public class VisibilityMapState extends AbstractComponentState {
     public int sightPoints = 5;
 
     public boolean gmMode = false;
+    public boolean mouseMoveEnabled = true;
 }

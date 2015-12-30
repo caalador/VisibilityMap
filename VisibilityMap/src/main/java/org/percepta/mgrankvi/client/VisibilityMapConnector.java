@@ -70,6 +70,8 @@ public class VisibilityMapConnector extends AbstractHasComponentsConnector {
         VConsole.log("State changed " + getState().lines.size());
         getWidget().setLines(getState().lines);
 //        getWidget().setHidden(getState().hidden);
+        getWidget().setWidth(getState().width);
+        getWidget().setHeight(getState().height);
     }
 
     @OnStateChange("multipoint")
@@ -100,6 +102,11 @@ public class VisibilityMapConnector extends AbstractHasComponentsConnector {
     @OnStateChange("gmMode")
     void gmMmode() {
         getWidget().setGmMode(getState().gmMode);
+    }
+
+    @OnStateChange("mouseMoveEnabled")
+    void setMouseMove() {
+        getWidget().setMouseMoveEnabled(getState().mouseMoveEnabled);
     }
 
     @Override

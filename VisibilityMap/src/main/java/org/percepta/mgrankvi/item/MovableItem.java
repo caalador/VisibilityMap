@@ -13,7 +13,6 @@ import java.lang.reflect.Method;
  */
 public abstract class MovableItem extends AbstractComponent {
 
-
     // To process events from the client, we implement ServerRpc
     private MapServerRpc rpc = new MapServerRpc() {
 
@@ -47,14 +46,20 @@ public abstract class MovableItem extends AbstractComponent {
         private static final long serialVersionUID = 1890057101443553065L;
 
         private final Point point;
+        private final String id;
 
-        public PositionChangeEvent(final Component source, Point point) {
+        public PositionChangeEvent(final Component source, Point point, String id) {
             super(source);
             this.point = point;
+            this.id = id;
         }
 
         public Point getPoint() {
             return point;
+        }
+
+        public String getId() {
+            return id;
         }
     }
 
@@ -88,6 +93,6 @@ public abstract class MovableItem extends AbstractComponent {
      * Fires a event to all listeners without any event details.
      */
     public void fireChangeEvent(Point point) {
-        fireEvent(new PositionChangeEvent(this, point));
+        fireEvent(new PositionChangeEvent(this, point, getId()));
     }
 }

@@ -13,7 +13,6 @@ import org.percepta.mgrankvi.client.geometry.Point;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 // This is the server-side UI component that provides public API 
@@ -45,9 +44,6 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         getState().lines = lines;
     }
 
-    public void setPoint(Point position) {
-        getRpcProxy(MapClientRpc.class).updatePosition(position);
-    }
 
     public void addLines(List<Line> lines) {
         getState().lines.addAll(lines);
@@ -97,6 +93,10 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         getRpcProxy(MapClientRpc.class).paint();
     }
 
+    public void setPoint(Point position) {
+        getRpcProxy(MapClientRpc.class).updatePosition(position);
+    }
+
     public void setDrawLines(boolean draw) {
         getState().drawLines = draw;
     }
@@ -111,6 +111,10 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     public boolean isGmMode() {
         return getState().gmMode;
+    }
+
+    public void setMouseMoveEnabled(boolean enabled) {
+        getState().mouseMoveEnabled = enabled;
     }
 
 
@@ -181,6 +185,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     @Override
     public void addComponent(final Component c) {
+        if(c == null) return;
         children.add(c);
         super.addComponent(c);
         update();
@@ -188,6 +193,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     @Override
     public void removeComponent(final Component c) {
+        if(c == null) return;
         children.remove(c);
         super.removeComponent(c);
         markAsDirty();
@@ -196,6 +202,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     @Override
     public void replaceComponent(final Component oldComponent, final Component newComponent) {
+        if(newComponent == null) return;
         final int index = children.indexOf(oldComponent);
         if (index != -1) {
             children.remove(index);
@@ -214,6 +221,15 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
     @Override
     public Iterator<Component> iterator() {
         return children.iterator();
+    }
+
+    public Component getById(String id) {
+        for(Component c : children) {
+            if(c.getId() != null && c.getId().equals(id)) {
+                return c;
+            }
+        }
+        return null;
     }
 }
 

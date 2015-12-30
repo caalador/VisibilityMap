@@ -54,29 +54,36 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
     // x and y velocity
     private int vX, vY;
     private boolean up = false;
-    boolean down = false;
-    boolean left = false;
-    boolean right = false;
-
-    List<MoveHandler> moveListener = new LinkedList<MoveHandler>();
+    private boolean down = false;
+    private boolean left = false;
+    private boolean right = false;
 
     Canvas map, bg;
-    boolean multipoint = false;
-    boolean enableDebugPoints = false;
-    boolean gmMode = false;
 
-    int fuzzyRadius = 5;
-    int sightPoints = 5;
+    private boolean multipoint = false;
+    private boolean enableDebugPoints = false;
+    private boolean gmMode = false;
+    private boolean painting = false;
+
+    private int fuzzyRadius = 5;
+    private int sightPoints = 5;
+
+    private int touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
 
     double multipointStep = DrawUtil.FULL_CIRCLE / sightPoints;
+
     Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
 
+    List<MoveHandler> moveListener = new LinkedList<MoveHandler>();
     List<Paintable> hidden = new LinkedList<Paintable>();
     List<Movable> movables = new LinkedList<Movable>();
+    List<Line> lines = new LinkedList<Line>();
+
+    Set<HandlerRegistration> gmHandlers = new HashSet<HandlerRegistration>();
 
     Movable selected = null;
+    String selectedColour;
 
-    List<Line> lines = new LinkedList<Line>();
     private final List<Line> borderLines = new LinkedList<Line>() {{
         // Border
         add(new Line(new Point(0, 0), new Point(WIDTH, 0)));
@@ -88,6 +95,7 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
     int x = WIDTH / 2;
     int y = HEIGHT / 2;
     private boolean drawLines = false;
+    private boolean mouseMoveEnabled;
 
     public VisibilityMapWidget() {
         lines.addAll(borderLines);
@@ -128,7 +136,15 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         initWidget(baseContent);
     }
 
-    boolean painting = false;
+    @Override
+    public void setWidth(String width) {
+        super.setWidth(width);
+    }
+
+    @Override
+    public void setHeight(String height) {
+        super.setHeight(height);
+    }
 
     protected void paint() {
         if (painting) return;
@@ -205,11 +221,6 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     private void paintHidden(Context2d context) {
         for (Paintable p : hidden) {
-            if(p.equals(selected)) {
-                context.setFillStyle("orange");
-            } else {
-                context.setFillStyle("#000");
-            }
             p.paint(context);
         }
     }
@@ -313,7 +324,7 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
                 selected.movePosition(event.getRelativeX(map.getElement()), event.getRelativeY(map.getElement()));
                 paint();
             }
-        } else {
+        } else if (mouseMoveEnabled) {
             x = event.getRelativeX(map.getElement());
             y = event.getRelativeY(map.getElement());
             paint();
@@ -330,6 +341,8 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         for (Movable movable : movables) {
             if (movable.pointInObject(x, y)) {
                 selected = movable;
+                selectedColour = ((Paintable) movable).getColour();
+                ((Paintable) movable).setColour("orange");
                 paint();
                 break;
             }
@@ -338,17 +351,17 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     @Override
     public void onMouseUp(MouseUpEvent event) {
+        ((Paintable) selected).setColour(selectedColour);
         selected = null;
         paint();
     }
 
     @Override
     public void onMouseOut(MouseOutEvent event) {
+        ((Paintable) selected).setColour(selectedColour);
         selected = null;
         paint();
     }
-
-    private int touchDistance = fuzzyRadius + DOT_RADIUS + SPEED;
 
     private void update() {
         vX = 0;
@@ -481,6 +494,7 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     public void setMultipoint(boolean multipoint) {
         this.multipoint = multipoint;
+        // Update touch distance on visibility point amount change
         touchDistance = multipoint ? fuzzyRadius + DOT_RADIUS + SPEED : DOT_RADIUS + SPEED;
         paint();
     }
@@ -504,19 +518,6 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         paint();
     }
 
-//    public void setHidden(List<Paintable> hidden) {
-//        List<Paintable> clear = new LinkedList<Paintable>();
-//
-//        for (Paintable point : this.hidden) {
-//            if (!hidden.contains(point)) {
-//                clear.add(point);
-//            }
-//        }
-//        this.hidden.removeAll(clear);
-//        this.hidden.addAll(hidden);
-//        paint();
-//    }
-
     public void clearHidden() {
         hidden.clear();
     }
@@ -534,22 +535,21 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         this.drawLines = drawLines;
     }
 
-    Set<HandlerRegistration> handlers = new HashSet<HandlerRegistration>();
-
     public void setGmMode(boolean gmMode) {
         this.gmMode = gmMode;
         if (gmMode) {
-            handlers.add(map.addDomHandler(this, MouseDownEvent.getType()));
-            handlers.add(map.addDomHandler(this, MouseUpEvent.getType()));
-            handlers.add(map.addDomHandler(this, MouseOutEvent.getType()));
+            gmHandlers.add(map.addDomHandler(this, MouseDownEvent.getType()));
+            gmHandlers.add(map.addDomHandler(this, MouseUpEvent.getType()));
+            gmHandlers.add(map.addDomHandler(this, MouseOutEvent.getType()));
         } else {
-            for (HandlerRegistration handler : handlers) {
+            for (HandlerRegistration handler : gmHandlers) {
                 handler.removeHandler();
             }
         }
 
     }
 
+    // Connector move handler
     public void addMoveHandler(MoveHandler moveHandler) {
         moveListener.add(moveHandler);
     }
@@ -558,5 +558,9 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         for (MoveHandler handler : moveListener) {
             handler.move(point);
         }
+    }
+
+    public void setMouseMoveEnabled(boolean mouseMoveEnabled) {
+        this.mouseMoveEnabled = mouseMoveEnabled;
     }
 }
