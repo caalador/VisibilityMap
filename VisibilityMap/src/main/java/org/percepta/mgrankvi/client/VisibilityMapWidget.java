@@ -46,19 +46,20 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
     private static final int HEIGHT = 360;
 
     public static final int DOT_RADIUS = 2;
+    public static final int SPEED = 3;
+
     public int UPDATE_SPEED = 10;
 
     private Timer updateTimer;
 
-    public static final int SPEED = 3;
+    Canvas map, bg;
+
     // x and y velocity
     private int vX, vY;
     private boolean up = false;
     private boolean down = false;
     private boolean left = false;
     private boolean right = false;
-
-    Canvas map, bg;
 
     private boolean multipoint = false;
     private boolean enableDebugPoints = false;
@@ -72,17 +73,17 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     double multipointStep = DrawUtil.FULL_CIRCLE / sightPoints;
 
-    Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
+    private Map<Double, Direction> angleDirections = new HashMap<Double, Direction>();
 
-    List<MoveHandler> moveListener = new LinkedList<MoveHandler>();
-    List<Paintable> hidden = new LinkedList<Paintable>();
-    List<Movable> movables = new LinkedList<Movable>();
-    List<Line> lines = new LinkedList<Line>();
+    private List<MoveHandler> moveListener = new LinkedList<MoveHandler>();
+    private List<Paintable> hidden = new LinkedList<Paintable>();
+    private List<Movable> movables = new LinkedList<Movable>();
+    private List<Line> lines = new LinkedList<Line>();
 
-    Set<HandlerRegistration> gmHandlers = new HashSet<HandlerRegistration>();
+    private Set<HandlerRegistration> gmHandlers = new HashSet<HandlerRegistration>();
 
-    Movable selected = null;
-    String selectedColour;
+    private Movable selected = null;
+    private String selectedColour;
 
     private final List<Line> borderLines = new LinkedList<Line>() {{
         // Border
@@ -94,8 +95,9 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     int x = WIDTH / 2;
     int y = HEIGHT / 2;
+
     private boolean drawLines = false;
-    private boolean mouseMoveEnabled;
+    private boolean mouseMoveEnabled = true;
 
     public VisibilityMapWidget() {
         lines.addAll(borderLines);
@@ -166,7 +168,14 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
             }
 
-            if (!gmMode) {
+            if (gmMode) {
+                context.setFillStyle("hsla(60,60%,30%,0.3)");
+                context.beginPath();
+                context.rect(0, 0, WIDTH, HEIGHT);
+                context.closePath();
+                context.fill();
+                paintHidden(context);
+            } else {
                 List<List<Intersect>> intersects = new LinkedList<List<Intersect>>();
 
                 // Collect all intersection points from position x,y
@@ -186,18 +195,12 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
                 drawVisibleWallSegments(context, intersects);
 
                 // Draw hidden content that only shows when inside a visibility polygon
+                // SOURCE_ATOP - The new shape is only drawn where it overlaps the existing canvas content.
                 context.save();
                 context.setGlobalCompositeOperation(Context2d.Composite.SOURCE_ATOP);
 
                 paintHidden(context);
                 context.restore();
-            } else {
-                context.setFillStyle("hsla(60,60%,30%,0.3)");
-                context.beginPath();
-                context.rect(0, 0, WIDTH, HEIGHT);
-                context.closePath();
-                context.fill();
-                paintHidden(context);
             }
 
             // Draw red dots for center position of sight cones.
@@ -219,6 +222,11 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         }
     }
 
+    /**
+     * Paint all "hidden" items to canvas.
+     *
+     * @param context Canvas context2d
+     */
     private void paintHidden(Context2d context) {
         for (Paintable p : hidden) {
             p.paint(context);

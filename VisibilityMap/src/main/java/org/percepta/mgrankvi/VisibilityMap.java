@@ -40,37 +40,109 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         return (VisibilityMapState) super.getState();
     }
 
+    /**
+     * Set map lines.
+     * <p/>
+     * Note! Clears all old lines.
+     *
+     * @param lines Lines to set to map
+     */
     public void setLines(List<Line> lines) {
         getState().lines = lines;
     }
 
-
+    /**
+     * Add new map lines.
+     *
+     * @param lines Lines to add to current map
+     */
     public void addLines(List<Line> lines) {
         getState().lines.addAll(lines);
     }
 
-    public void setMultipoint(boolean multipoint) {
-        getState().multipoint = multipoint;
-    }
-
+    /**
+     * Set if debug points (points that rays and lines intercept @) should be visible
+     *
+     * @param debugPoints true/false
+     */
     public void setDebugPoints(boolean debugPoints) {
         getState().enableDebugPoints = debugPoints;
     }
 
+
+    /**
+     * Set if all lines should be drawn even if hidden from view
+     *
+     * @param draw true/false
+     */
+    public void setDrawLines(boolean draw) {
+        getState().drawLines = draw;
+    }
+
+    /**
+     * Set GameMaster mode.
+     * This contains functions:
+     * - Point is not movable
+     * - No visibility polygon
+     * - Hidden items that are movable can be moved
+     * - All lines are drawn
+     *
+     * @param gm true/false
+     */
+    public void setGmMode(boolean gm) {
+        getState().gmMode = gm;
+    }
+
+    /**
+     * Enable or disable moving point position with a mouseMoveEvent
+     *
+     * @param enabled true/false
+     */
+    public void setMouseMoveEnabled(boolean enabled) {
+        getState().mouseMoveEnabled = enabled;
+    }
+
+    /**
+     * Set if visibility point should use multiple visibility points for fuzzy corner visibility.
+     *
+     * @param multipoint true/false
+     */
+    public void setMultipoint(boolean multipoint) {
+        getState().multipoint = multipoint;
+    }
+
+    /**
+     * Set point distance from center point in multipoint mode.
+     *
+     * @param fuzzyRadius distance Default: 5
+     */
     public void setFuzzyRadius(int fuzzyRadius) {
         getState().fuzzyRadius = fuzzyRadius;
     }
 
+    /**
+     * Set amount of sight points to be used in mulipoint mode
+     *
+     * @param sightPoints sight points, Default: 5
+     */
     public void setSightPoints(int sightPoints) {
         getState().sightPoints = sightPoints;
     }
 
-    public boolean isMultiselect() {
-        return getState().multipoint;
-    }
-
     public boolean isDebug() {
         return getState().enableDebugPoints;
+    }
+
+    public boolean isDrawLines() {
+        return getState().drawLines;
+    }
+
+    public boolean isGmMode() {
+        return getState().gmMode;
+    }
+
+    public boolean isMultiselect() {
+        return getState().multipoint;
     }
 
     public int getFuzzyRadius() {
@@ -81,40 +153,20 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         return getState().sightPoints;
     }
 
-//    public void addHidden(Point hidden) {
-//        getState().hidden.add(hidden);
-//    }
-//
-//    public void clearHidden() {
-//        getState().hidden.clear();
-//    }
-
+    /**
+     * Request repaint of map
+     */
     public void update() {
         getRpcProxy(MapClientRpc.class).paint();
     }
 
+    /**
+     * Set point position on map
+     *
+     * @param position position Point
+     */
     public void setPoint(Point position) {
         getRpcProxy(MapClientRpc.class).updatePosition(position);
-    }
-
-    public void setDrawLines(boolean draw) {
-        getState().drawLines = draw;
-    }
-
-    public boolean isDrawLines() {
-        return getState().drawLines;
-    }
-
-    public void setGmMode(boolean gm) {
-        getState().gmMode = gm;
-    }
-
-    public boolean isGmMode() {
-        return getState().gmMode;
-    }
-
-    public void setMouseMoveEnabled(boolean enabled) {
-        getState().mouseMoveEnabled = enabled;
     }
 
 
@@ -130,7 +182,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
     }
 
     /**
-     * Selection event. This event is thrown, when a selection is made.
+     * Selection event. This event is thrown, when the default point is moved.
      */
     public class PositionChangeEvent extends Component.Event {
         private static final long serialVersionUID = 1890057101443553065L;
@@ -185,7 +237,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     @Override
     public void addComponent(final Component c) {
-        if(c == null) return;
+        if (c == null) return;
         children.add(c);
         super.addComponent(c);
         update();
@@ -193,7 +245,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     @Override
     public void removeComponent(final Component c) {
-        if(c == null) return;
+        if (c == null) return;
         children.remove(c);
         super.removeComponent(c);
         markAsDirty();
@@ -202,7 +254,7 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
 
     @Override
     public void replaceComponent(final Component oldComponent, final Component newComponent) {
-        if(newComponent == null) return;
+        if (newComponent == null) return;
         final int index = children.indexOf(oldComponent);
         if (index != -1) {
             children.remove(index);
@@ -223,9 +275,15 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         return children.iterator();
     }
 
+    /**
+     * Get child component with id if one has been connected to component
+     *
+     * @param id String component id
+     * @return Component or Null if not found.
+     */
     public Component getById(String id) {
-        for(Component c : children) {
-            if(c.getId() != null && c.getId().equals(id)) {
+        for (Component c : children) {
+            if (c.getId() != null && c.getId().equals(id)) {
                 return c;
             }
         }

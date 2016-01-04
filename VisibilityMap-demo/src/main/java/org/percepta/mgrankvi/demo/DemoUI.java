@@ -46,7 +46,7 @@ import java.util.TimerTask;
 public class DemoUI extends UI implements Broadcaster.BroadcastListener {
 
     @Override
-    public void receiveBroadcast(final String map, final String id, final Point point) {
+    public void updatePoint(final String map, final String id, final Point point) {
         access(new Runnable() {
             @Override
             public void run() {
@@ -108,9 +108,10 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
 
     @Override
     public void detach() {
-        if (player != null)
-            Broadcaster.broadcastPlayer(mapParam, player, true);
         Broadcaster.unregister(this);
+        if (player != null) {
+            Broadcaster.broadcastPlayer(mapParam, player, true);
+        }
         super.detach();
     }
 
@@ -123,12 +124,16 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
 
     private static final int WIDTH = 640;
     private static final int HEIGHT = 360;
-    Dot p1, p2, p3;
+
+    private Dot p1, p2, p3;
+
     final Random rand = new Random(System.currentTimeMillis());
 
-    Map<String, Dot> items = Maps.newHashMap();
     static Map<String, List<Line>> mapLines = Maps.newHashMap();
     static Map<String, Point> points = Maps.newHashMap();
+
+    Map<String, Dot> items = Maps.newHashMap();
+
     String mapParam = "empty";
 
     Dot player;
@@ -161,7 +166,7 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
                         player.setPosition(event.getPoint());
                         Broadcaster.broadcastPlayer(mapParam, player, false);
                     } else {
-                        Broadcaster.broadcast(mapParam, "player", event.getPoint());
+                        Broadcaster.broadcastPointUpdate(mapParam, "player", event.getPoint());
                     }
                 }
             });
@@ -172,10 +177,10 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
             MovableItem.PositionChangeListener listener = new MovableItem.PositionChangeListener() {
                 @Override
                 public void positionChanged(MovableItem.PositionChangeEvent event) {
-                    Broadcaster.broadcast(mapParam, event.getId(), event.getPoint());
+                    Broadcaster.broadcastPointUpdate(mapParam, event.getId(), event.getPoint());
 
                     if (!mapParam.equals("empty")) {
-                        points.put(mapParam + event.getId(), event.getPoint());
+                        points.put(mapParam + "-" + event.getId(), event.getPoint());
                     }
                 }
             };
@@ -223,6 +228,7 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
         layout.addComponent(maps);
         layout.setComponentAlignment(maps, Alignment.MIDDLE_CENTER);
         layout.setExpandRatio(maps, 1f);
+
         Panel p = new Panel();
         VerticalLayout imageLayout = new VerticalLayout();
         p.setContent(imageLayout);
@@ -299,7 +305,7 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
                         lineList.clear();
                     }
                     lineList.addAll(lines);
-                    Broadcaster.broadcast(mapParam, "lines", null);
+                    Broadcaster.broadcastPointUpdate(mapParam, "lines", null);
                 }
                 if (add) {
                     DemoUI.this.visibilityMap.addLines(lines);

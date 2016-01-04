@@ -12,7 +12,7 @@ public class Broadcaster implements Serializable {
     static ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     public interface BroadcastListener {
-        void receiveBroadcast(String map, String id, Point point);
+        void updatePoint(String map, String id, Point point);
 
         void updatePlayer(String map, Dot player);
 
@@ -29,12 +29,12 @@ public class Broadcaster implements Serializable {
         listeners.remove(listener);
     }
 
-    public static synchronized void broadcast(final String map, final String id, final Point point) {
+    public static synchronized void broadcastPointUpdate(final String map, final String id, final Point point) {
         for (final BroadcastListener listener : listeners)
             executorService.execute(new Runnable() {
                 @Override
                 public void run() {
-                    listener.receiveBroadcast(map, id, point);
+                    listener.updatePoint(map, id, point);
                 }
             });
     }
