@@ -72,6 +72,10 @@ public class VisibilityMapConnector extends AbstractHasComponentsConnector {
 //        getWidget().setHidden(getState().hidden);
         getWidget().setWidth(getState().width);
         getWidget().setHeight(getState().height);
+
+        getWidget().setGridStepSize(getState().gridStepSize);
+        getWidget().setStartPoint(getState().startPoint);
+        getWidget().setStep(getState().step);
     }
 
     @OnStateChange("multipoint")
@@ -108,6 +112,7 @@ public class VisibilityMapConnector extends AbstractHasComponentsConnector {
     void setMouseMove() {
         getWidget().setMouseMoveEnabled(getState().mouseMoveEnabled);
     }
+
 
     @Override
     public void onConnectorHierarchyChange(ConnectorHierarchyChangeEvent connectorHierarchyChangeEvent) {

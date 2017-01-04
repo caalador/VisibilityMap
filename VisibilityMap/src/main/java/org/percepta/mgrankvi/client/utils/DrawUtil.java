@@ -9,9 +9,7 @@ public class DrawUtil {
 
     public static final double FULL_CIRCLE = 2 * Math.PI;
 
-    public static void drawGrid(Context2d g, int width, int height, String bg) {
-        int stepSize = 20;
-
+    public static void drawGrid(Context2d g, int width, int height, String bg, int stepSize) {
         // Background
         g.setFillStyle(bg);
         g.fillRect(0, 0, width + 1, height + 1);

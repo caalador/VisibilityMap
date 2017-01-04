@@ -1,9 +1,11 @@
 package org.percepta.mgrankvi.client.geometry;
 
+import java.io.Serializable;
+
 /**
  * @author Mikael Grankvist - Vaadin }>
  */
-public class Line {
+public class Line implements Serializable {
 
     public Point start;
     public Point end;

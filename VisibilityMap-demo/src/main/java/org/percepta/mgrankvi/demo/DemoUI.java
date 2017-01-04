@@ -138,6 +138,8 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
 
     Dot player;
 
+    private long lastUpdate = 0;
+
     @Override
     protected void init(VaadinRequest request) {
         if (request.getParameter("map") != null) {
@@ -154,6 +156,7 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
             player.setColour(Colours.cssColours[Math.abs(rand.nextInt() % Colours.cssColours.length)]);
             player.setId(request.getParameter("player") + "-" + mapParam);
         }
+        visibilityMap.setStepMovement(true);
 
         init();
         addLines(visibilityMap);
@@ -162,12 +165,16 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
             visibilityMap.addPositionChangeListener(new VisibilityMap.PositionChangeListener() {
                 @Override
                 public void positionChanged(VisibilityMap.PositionChangeEvent event) {
-                    if (player != null) {
-                        player.setPosition(event.getPoint());
-                        Broadcaster.broadcastPlayer(mapParam, player, false);
-                    } else {
-                        Broadcaster.broadcastPointUpdate(mapParam, "player", event.getPoint());
+                    long update = System.currentTimeMillis();
+                    if(update-lastUpdate > 250) {
+                        if (player != null) {
+                            player.setPosition(event.getPoint());
+                            Broadcaster.broadcastPlayer(mapParam, player, false);
+                        } else {
+                            Broadcaster.broadcastPointUpdate(mapParam, "player", event.getPoint());
+                        }
                     }
+                    lastUpdate = update;
                 }
             });
         }
@@ -247,21 +254,21 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
         layout.addComponent(mapsPopup);
         setContent(layout);
 
-        if (mapParam.equals("empty")) {
-            final Timer timer = new Timer();
-            timer.scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    update();
-                }
-            }, 1500, 500);
-            getUI().addDetachListener(new DetachListener() {
-                @Override
-                public void detach(DetachEvent detachEvent) {
-                    timer.cancel();
-                }
-            });
-        }
+//        if (mapParam.equals("empty")) {
+//            final Timer timer = new Timer();
+//            timer.scheduleAtFixedRate(new TimerTask() {
+//                @Override
+//                public void run() {
+//                    update();
+//                }
+//            }, 1500, 500);
+//            getUI().addDetachListener(new DetachListener() {
+//                @Override
+//                public void detach(DetachEvent detachEvent) {
+//                    timer.cancel();
+//                }
+//            });
+//        }
     }
 
     private void initPoints() {

@@ -289,5 +289,23 @@ public class VisibilityMap extends AbstractComponentContainer implements HasComp
         }
         return null;
     }
+
+    /**
+     * Set if the user should only move one step at a time instead of active for keydown.
+     *
+     * @param moveByStep true to move by stepping
+     */
+    public void setStepMovement(boolean moveByStep) {
+        getState().step = moveByStep;
+    }
+
+    /**
+     * Set point where user should start at. Default is from the middle.
+     *
+     * @param startingPoint User starting point
+     */
+    public void setStartingPoint(Point startingPoint) {
+        getState().startPoint = startingPoint;
+    }
 }
 

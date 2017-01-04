@@ -22,6 +22,8 @@ import com.google.gwt.user.client.ui.AbsolutePanel;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
+import com.vaadin.client.VConsole;
+import com.vaadin.ui.Calendar;
 import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
 import org.percepta.mgrankvi.client.geometry.Direction;
@@ -46,7 +48,8 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
     private static final int HEIGHT = 360;
 
     public static final int DOT_RADIUS = 2;
-    public static final int SPEED = 3;
+    public static final int DEFAULT_SPEED = 3;
+    public int SPEED = 3;
 
     public int UPDATE_SPEED = 10;
 
@@ -85,6 +88,8 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
     private Movable selected = null;
     private String selectedColour;
 
+    private int gridStepSize = 20;
+
     private final List<Line> borderLines = new LinkedList<Line>() {{
         // Border
         add(new Line(new Point(0, 0), new Point(WIDTH, 0)));
@@ -98,6 +103,7 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     private boolean drawLines = false;
     private boolean mouseMoveEnabled = true;
+    private boolean step = false;
 
     public VisibilityMapWidget() {
         lines.addAll(borderLines);
@@ -118,9 +124,9 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
             bg.setCoordinateSpaceWidth(WIDTH);
             bg.setCoordinateSpaceHeight(HEIGHT);
             if (gmMode) {
-                DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT, "hsl(210, 50%, 75%)");
+                DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT, "hsl(210, 50%, 75%)", gridStepSize);
             } else {
-                DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT, "hsl(210, 50%, 25%)");
+                DrawUtil.drawGrid(bg.getContext2d(), WIDTH, HEIGHT, "hsl(210, 50%, 25%)", gridStepSize);
             }
 
 
@@ -380,6 +386,15 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
         if (right) vX = SPEED;
 
         if (getDistanceToClosestWall(vX, vY) > touchDistance) {
+            if(step) {
+                Line step = new Line(new Point(x,y), new Point(x+vX,y+vY));
+                for(Line line : lines) {
+                    if(Calculations.lineSegmentsIntersect(step, line)){
+                        VConsole.log("Intersect " + step + " :: " + line);
+                        return;
+                    }
+                }
+            }
             if (x + vX > 0 && x + vX < WIDTH) {
                 x += vX;
             }
@@ -433,7 +448,7 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
     public void onKeyDown(KeyDownEvent event) {
         if (gmMode) return;
 
-        if (updateTimer == null) {
+        if (updateTimer == null && !step) {
             updateTimer = new Timer() {
 
                 @Override
@@ -570,5 +585,28 @@ public class VisibilityMapWidget extends Composite implements MouseDownHandler, 
 
     public void setMouseMoveEnabled(boolean mouseMoveEnabled) {
         this.mouseMoveEnabled = mouseMoveEnabled;
+    }
+
+    public void setGridStepSize(int gridStepSize) {
+        this.gridStepSize = gridStepSize;
+    }
+
+    public void setStep(boolean step) {
+        this.step = step;
+        if (step) {
+            SPEED = gridStepSize;
+            x = x - (x % gridStepSize) + gridStepSize / 2;
+            y = y - (y % gridStepSize) + gridStepSize / 2;
+            paint();
+        } else {
+            SPEED = DEFAULT_SPEED;
+        }
+    }
+
+    public void setStartPoint(Point startPoint) {
+        if (startPoint != null) {
+            x = (int) startPoint.getX();
+            y = (int) startPoint.getY();
+        }
     }
 }

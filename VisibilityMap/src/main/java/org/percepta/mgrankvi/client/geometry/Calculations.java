@@ -140,4 +140,40 @@ public class Calculations {
 
         return d;
     }
+
+
+    public static double distance(final Point p1, final Point p2) {
+        final double x_diff = p2.getX() - p1.getX();
+        final double y_diff = p2.getY() - p1.getY();
+
+        return Math.sqrt(x_diff * x_diff + y_diff * y_diff);
+    }
+
+
+    /**
+     * Do line segments (l1.start.getX(), l1.start.getY())--(l1.end.getX(),
+     * l1.end.getY()) and (l2.start.getX(), l2.start.getY())--(l2.end.getX(),
+     * l2.end.getY()) intersect?
+     */
+    public static boolean lineSegmentsIntersect(final Line l1, final Line l2) {
+        final int d1 = computeDirection(l2, l1.start);
+        final int d2 = computeDirection(l2, l1.end);
+        final int d3 = computeDirection(l1, l2.start);
+        final int d4 = computeDirection(l1, l2.end);
+        return (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))
+                || (d1 == 0 && isOnSegment(l2.start.getX(), l2.start.getY(), l2.end.getX(), l2.end.getY(), l1.start.getX(), l1.start.getY()))
+                || (d2 == 0 && isOnSegment(l2.start.getX(), l2.start.getY(), l2.end.getX(), l2.end.getY(), l1.end.getX(), l1.end.getY()))
+                || (d3 == 0 && isOnSegment(l1.start.getX(), l1.start.getY(), l1.end.getX(), l1.end.getY(), l2.start.getX(), l2.start.getY()))
+                || (d4 == 0 && isOnSegment(l1.start.getX(), l1.start.getY(), l1.end.getX(), l1.end.getY(), l2.end.getX(), l2.end.getY()));
+    }
+
+    public static int computeDirection(final Line line, final Point point) {
+        final int a = (int) ((point.getX() - line.start.getX()) * (line.end.getY() - line.start.getY()));
+        final int b = (int) ((line.end.getX() - line.start.getX()) * (point.getY() - line.start.getY()));
+        return a < b ? -1 : a > b ? 1 : 0;
+    }
+
+    public static boolean isOnSegment(final double xi, final double yi, final double xj, final double yj, final double xk, final double yk) {
+        return (xi <= xk || xj <= xk) && (xk <= xi || xk <= xj) && (yi <= yk || yj <= yk) && (yk <= yi || yk <= yj);
+    }
 }
