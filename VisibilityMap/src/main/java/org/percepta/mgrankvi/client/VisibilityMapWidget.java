@@ -23,7 +23,6 @@ import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.vaadin.client.VConsole;
-import com.vaadin.ui.Calendar;
 import elemental.events.KeyboardEvent;
 import org.percepta.mgrankvi.client.geometry.Calculations;
 import org.percepta.mgrankvi.client.geometry.Direction;

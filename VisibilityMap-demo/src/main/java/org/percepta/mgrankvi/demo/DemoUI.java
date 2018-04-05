@@ -1,12 +1,11 @@
 package org.percepta.mgrankvi.demo;
 
-import com.google.gwt.thirdparty.guava.common.collect.Lists;
-import com.google.gwt.thirdparty.guava.common.collect.Maps;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.vaadin.annotations.Push;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.Title;
 import com.vaadin.annotations.VaadinServletConfiguration;
-import com.vaadin.data.Property;
 import com.vaadin.event.MouseEvents;
 import com.vaadin.server.FileResource;
 import com.vaadin.server.VaadinRequest;
@@ -36,8 +35,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 
 @Theme("demo")
 @Title("VisibilityMap Demo")
@@ -166,7 +163,7 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
                 @Override
                 public void positionChanged(VisibilityMap.PositionChangeEvent event) {
                     long update = System.currentTimeMillis();
-                    if(update-lastUpdate > 250) {
+                    if (update - lastUpdate > 250) {
                         if (player != null) {
                             player.setPosition(event.getPoint());
                             Broadcaster.broadcastPlayer(mapParam, player, false);
@@ -370,56 +367,36 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
 
         games = newSelect("Active games", mapLines.keySet().toArray());
 
-        multipoint.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                visibilityMap.setMultipoint(multipoint.getValue());
-            }
+        multipoint.addValueChangeListener(event -> {
+            visibilityMap.setMultipoint(multipoint.getValue());
         });
 
-        debug.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                visibilityMap.setDebugPoints(debug.getValue());
-            }
+        debug.addValueChangeListener(event -> {
+            visibilityMap.setDebugPoints(debug.getValue());
         });
-        drawLines.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                visibilityMap.setDrawLines(drawLines.getValue());
-            }
+        drawLines.addValueChangeListener(event -> {
+            visibilityMap.setDrawLines(drawLines.getValue());
         });
-        gm.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                visibilityMap.setGmMode(gm.getValue());
-            }
+        gm.addValueChangeListener(event -> {
+            visibilityMap.setGmMode(gm.getValue());
+
         });
 
-        fuzzy.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                visibilityMap.setFuzzyRadius(Integer.parseInt(fuzzy.getValue()));
-            }
+        fuzzy.addValueChangeListener(event -> {
+            visibilityMap.setFuzzyRadius(Integer.parseInt(fuzzy.getValue()));
         });
 
-        amount.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent event) {
-                visibilityMap.setSightPoints(Integer.parseInt(amount.getValue()));
-            }
+        amount.addValueChangeListener(event -> {
+            visibilityMap.setSightPoints(Integer.parseInt(amount.getValue()));
         });
 
-        games.addValueChangeListener(new Property.ValueChangeListener() {
-            @Override
-            public void valueChange(Property.ValueChangeEvent valueChangeEvent) {
+        games.addValueChangeListener(event ->{
                 mapParam = (String) games.getValue();
                 visibilityMap.setLines(Lists.<Line>newArrayList());
                 addLines(visibilityMap);
                 p1.setPosition(getPoint("p1"));
                 p2.setPosition(getPoint("p2"));
                 p3.setPosition(getPoint("p3"));
-            }
         });
     }
 
@@ -480,7 +457,6 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
 
     private TextField newTextField(String caption, String value) {
         TextField textField = new TextField(caption);
-        textField.setImmediate(true);
         textField.setValue(value);
 
         return textField;
@@ -489,16 +465,13 @@ public class DemoUI extends UI implements Broadcaster.BroadcastListener {
     private CheckBox newCheckBox(String caption, boolean value) {
         CheckBox checkBox = new CheckBox(caption);
         checkBox.setValue(value);
-        checkBox.setImmediate(true);
         return checkBox;
     }
 
     private NativeSelect newSelect(String caption, Object... values) {
         NativeSelect select = new NativeSelect(caption);
 
-        for (Object item : values) {
-            select.addItem(item);
-        }
+        select.setItems(values);
 
         return select;
     }
